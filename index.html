@@ -15,7 +15,7 @@
             position: relative; overflow: hidden;
         }
 
-        /* --- الغيوم الخلفية الشفافة (جديدة) --- */
+        /* --- الغيوم الخلفية الشفافة --- */
         .bg-cloud-1, .bg-cloud-2 {
             position: absolute;
             border-radius: 50%;
@@ -267,7 +267,6 @@
         const API_KEY = "8cfbdd362db68d9f6f10a8afc288c3aa";
         const WEATHER_URL = "https://api.openweathermap.org/data/2.5/";
 
-        // توليد مطر عام للشاشة
         function generateRaindrops() {
             const layer = document.getElementById('rainLayer');
             layer.innerHTML = '';
@@ -281,7 +280,6 @@
             }
         }
 
-        // إعداد الخلفية العامة حسب الوقت
         function getTimeBasedBackground() {
             const hour = new Date().getHours();
             if (hour >= 6 && hour < 12) return "linear-gradient(135deg, #FFDF00, #FF8C00)";
@@ -383,7 +381,8 @@
 
                 forecastItems.forEach((day) => {
                     const date = new Date(day.dt * 1000);
-                    const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+                    // تم إصلاح الأيام هنا!
+                    const dayName = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][date.getDay()];
                     const dateStr = date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
                     const id = day.weather[0].id;
                     
