@@ -9,330 +9,300 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Quicksand', sans-serif; }
 
         body {
-            background: linear-gradient(180deg, #31488C 0%, #1F2954 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
-            align-items: flex-start;
-            padding: 20px 0;
-            color: white;
+            align-items: center;
+            padding: 15px;
+            transition: background 0.8s ease;
         }
+
+        /* --- تدرج الألوان حسب الوقت --- */
+        body.morning { background: linear-gradient(180deg, #FFB75E, #ED8F03); }
+        body.afternoon { background: linear-gradient(180deg, #4facfe, #00f2fe); }
+        body.evening { background: linear-gradient(180deg, #31488C, #1F2954); }
+        body.night { background: linear-gradient(180deg, #0b1426, #1A2A44); }
 
         .app-screen {
-            width: 100%;
-            max-width: 400px; /* عرض الهاتف */
-            padding: 0 20px;
+            width: 100%; max-width: 500px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            border-radius: 35px; padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            color: white;
+            transition: all 0.5s ease;
+            position: relative;
         }
 
-        /* --- رأس الصفحة --- */
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 25px;
-            padding-top: 10px;
+        /* --- شاشة الترحيب --- */
+        .welcome-screen {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; padding: 40px 0;
         }
-        .header .location {
-            display: flex;
-            flex-direction: column;
-        }
-        .header .city-name {
-            font-size: 26px;
-            font-weight: 600;
-        }
-        .header .icon-btn {
-            font-size: 20px;
-            cursor: pointer;
-            background: rgba(255,255,255,0.1);
-            border-radius: 50%;
-            padding: 8px;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        /* --- التنبيه (Allow location) --- */
-        .alert-box {
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
-            border-radius: 16px;
-            padding: 15px;
-            margin-bottom: 25px;
-            border: 1px solid rgba(255,255,255,0.2);
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .alert-box p {
-            font-size: 13px;
-            opacity: 0.9;
-            line-height: 1.4;
-        }
-        .alert-actions {
-            display: flex;
-            justify-content: flex-end;
-            gap: 20px;
-            font-size: 14px;
-            font-weight: 600;
-            color: #fff;
-        }
-        .alert-actions span {
-            cursor: pointer;
-        }
-        .alert-actions span:last-child {
-            opacity: 0.7;
-        }
-
-        /* --- درجة الحرارة الرئيسية --- */
-        .main-temp-section {
-            text-align: center;
-            margin-bottom: 25px;
-        }
-        .big-temp {
-            font-size: 80px;
-            font-weight: 700;
-            line-height: 1;
-            letter-spacing: -2px;
-        }
-        .big-temp sup {
-            font-size: 30px;
-            font-weight: 400;
-            top: -30px;
-        }
-        .weather-summary {
-            margin-top: 10px;
-            font-size: 15px;
-            opacity: 0.9;
-        }
-        .weather-summary span {
-            opacity: 0.7;
-        }
-
-        /* --- شريط المعلومات (Pollen info) --- */
-        .info-bar {
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
-            border-radius: 50px;
+        .welcome-screen.hidden { display: none; }
+        .welcome-screen h2 { font-size: 24px; margin-bottom: 10px; }
+        .welcome-screen p { font-size: 14px; opacity: 0.8; margin-bottom: 20px; }
+        .welcome-screen input {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 30px;
             padding: 12px 20px;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 14px;
-            font-weight: 600;
-            border: 1px solid rgba(255,255,255,0.1);
+            color: white;
+            outline: none;
+            width: 100%;
+            font-size: 16px;
         }
+        .welcome-screen input::placeholder { color: rgba(255,255,255,0.6); }
 
-        /* --- الساعات القادمة (Horizontal Scroll) --- */
+        /* --- زر البحث --- */
+        .btn-search {
+            background: white; color: #333; border: none;
+            border-radius: 30px; padding: 12px 30px;
+            font-weight: 700; cursor: pointer; width: 100%;
+            margin-top: 15px; transition: 0.3s;
+        }
+        .btn-search:hover { transform: scale(1.02); }
+
+        /* --- واجهة الطقس --- */
+        .weather-ui { display: none; }
+        .weather-ui.active { display: block; }
+
+        .header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 15px;
+        }
+        .city-name { font-size: 22px; font-weight: 600; }
+        .btn-reset {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 20px;
+            padding: 5px 15px;
+            color: white;
+            cursor: pointer;
+            font-size: 12px;
+            transition: 0.3s;
+        }
+        .btn-reset:hover { background: rgba(255,255,255,0.3); }
+
+        .main-temp { text-align: center; margin: 15px 0; }
+        .big-temp { font-size: 70px; font-weight: 700; letter-spacing: -2px; }
+        .big-temp sup { font-size: 24px; font-weight: 400; top: -20px; }
+        .weather-desc { font-size: 16px; opacity: 0.9; }
+
+        /* --- الساعات القادمة --- */
         .hourly-section {
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
             border-radius: 20px;
-            padding: 15px;
-            margin-bottom: 25px;
+            padding: 15px; margin: 20px 0;
             border: 1px solid rgba(255,255,255,0.05);
         }
-        .hourly-scroll {
-            display: flex;
-            overflow-x: auto;
-            gap: 20px;
-            padding-bottom: 5px;
-            /* إخفاء شريط التمرير */
-            scrollbar-width: none;
-            -ms-overflow-style: none;
+        .scroll-row {
+            display: flex; overflow-x: auto; gap: 20px;
+            scrollbar-width: none; -ms-overflow-style: none;
         }
-        .hourly-scroll::-webkit-scrollbar {
-            display: none;
-        }
+        .scroll-row::-webkit-scrollbar { display: none; }
         .hour-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-width: 60px;
-            gap: 5px;
+            display: flex; flex-direction: column; align-items: center;
+            min-width: 60px; gap: 5px;
         }
-        .hour-item .time {
-            font-size: 12px;
-            opacity: 0.8;
-        }
-        .hour-item .icon {
-            font-size: 22px;
-        }
-        .hour-item .deg {
-            font-size: 14px;
-            font-weight: 700;
-        }
+        .hour-item .time { font-size: 12px; opacity: 0.8; }
+        .hour-item .icon { font-size: 22px; }
+        .hour-item .deg { font-size: 14px; font-weight: 700; }
 
-        /* --- الأيام القادمة (List) --- */
+        /* --- 7 أيام (عرضي) --- */
         .daily-section {
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
             border-radius: 20px;
-            padding: 5px 15px;
+            padding: 15px;
             border: 1px solid rgba(255,255,255,0.05);
-            margin-bottom: 30px;
         }
+        .daily-row {
+            display: flex; overflow-x: auto; gap: 15px;
+            scrollbar-width: none; -ms-overflow-style: none;
+        }
+        .daily-row::-webkit-scrollbar { display: none; }
         .daily-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
+            display: flex; flex-direction: column; align-items: center;
+            min-width: 80px; background: rgba(255,255,255,0.05);
+            border-radius: 15px; padding: 10px; gap: 5px;
         }
-        .daily-item:last-child {
-            border-bottom: none;
-        }
-        .daily-item .day-info {
-            display: flex;
-            flex-direction: column;
-        }
-        .daily-item .day-name {
-            font-size: 15px;
-            font-weight: 600;
-        }
-        .daily-item .day-date {
-            font-size: 12px;
-            opacity: 0.7;
-        }
-        .daily-item .mid {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .daily-item .mid .icon {
-            font-size: 24px;
-        }
-        .daily-item .temp-range {
-            font-size: 15px;
-            font-weight: 600;
-            display: flex;
-            gap: 10px;
-        }
-
-        /* --- حقل البحث --- */
-        .search-bar {
-            margin-top: 5px;
-            display: flex;
-            background: rgba(255,255,255,0.15);
-            border-radius: 30px;
-            padding: 10px 20px;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        .search-bar input {
-            background: transparent;
-            border: none;
-            color: white;
-            outline: none;
-            width: 100%;
-            font-size: 14px;
-        }
-        .search-bar input::placeholder {
-            color: rgba(255,255,255,0.6);
-        }
+        .daily-item .day { font-size: 12px; font-weight: 600; opacity: 0.8; }
+        .daily-item .icon { font-size: 28px; }
+        .daily-item .temps { font-size: 13px; font-weight: 600; display: flex; gap: 8px; }
+        .daily-item .temps .high { color: #fff; }
+        .daily-item .temps .low { opacity: 0.6; }
 
         @media (min-width: 600px) {
             body { padding: 40px 0; }
-            .app-screen { box-shadow: 0 20px 50px rgba(0,0,0,0.5); border-radius: 40px; padding: 30px 20px; background: linear-gradient(180deg, #31488C 0%, #1F2954 100%); }
+            .app-screen { box-shadow: 0 20px 50px rgba(0,0,0,0.5); border-radius: 40px; padding: 30px 20px; }
         }
     </style>
 </head>
 <body>
 
     <div class="app-screen">
-        <!-- 1. رأس الصفحة -->
-        <div class="header">
-            <div class="location">
-                <div class="city-name" id="cityDisplay">Abul Khasib</div>
-                <div style="font-size:12px; opacity:0.7;"><i class="fas fa-map-marker-alt"></i> Basra, IQ</div>
-            </div>
-            <div class="icon-btn">⚙️</div>
+        <!-- شاشة الترحيب -->
+        <div class="welcome-screen" id="welcomeScreen">
+            <h2>🌍 Weather App</h2>
+            <p>Enter your city name below to check the weather.</p>
+            <input type="text" id="searchInput" placeholder="e.g. London, Paris...">
+            <button class="btn-search" onclick="searchByInput()">Get Weather</button>
+            <div style="font-size:12px; margin-top:15px; opacity:0.6;">Or we'll try to detect your location automatically...</div>
         </div>
 
-        <!-- 2. تنبيه الموقع -->
-        <div class="alert-box">
-            <p>To get more accurate weather information, allow "Weather" to access your precise location.</p>
-            <div class="alert-actions">
-                <span style="opacity:0.6;">Disagree</span>
-                <span>Allow</span>
+        <!-- واجهة الطقس -->
+        <div class="weather-ui" id="weatherUI">
+            <div class="header">
+                <div class="city-name" id="cityDisplay">Loading...</div>
+                <button class="btn-reset" onclick="resetApp()">⟳ Reset</button>
             </div>
-        </div>
 
-        <!-- 3. درجة الحرارة الرئيسية -->
-        <div class="main-temp-section">
-            <div class="big-temp">47<sup>°</sup></div>
-            <div class="weather-summary">
-                Mostly sunny <span>32° / 48°</span>
-                <br>
-                Air quality: 129 - <span style="opacity:0.8;">Unhealthy for Sensitive Groups</span>
+            <div class="main-temp">
+                <div class="big-temp"><span id="mainTemp">--</span><sup>°</sup></div>
+                <div class="weather-desc" id="mainDesc">--</div>
             </div>
-        </div>
 
-        <!-- 4. شريط المعلومات -->
-        <div class="info-bar">
-            <span>🌿</span> Very low pollen count
-        </div>
+            <div class="hourly-section">
+                <div style="font-size:12px; opacity:0.8; margin-bottom:10px;">Hourly Forecast</div>
+                <div class="scroll-row" id="hourlyContainer">
+                    <!-- سيتم إنشاؤها بواسطة JS -->
+                </div>
+            </div>
 
-        <!-- 5. الساعات القادمة -->
-        <div class="hourly-section">
-            <div class="hourly-scroll" id="hourlyContainer">
-                <div class="hour-item"><span class="time">Now</span><span class="icon">☀️</span><span class="deg">47°</span></div>
-                <div class="hour-item"><span class="time">6 PM</span><span class="icon">☀️</span><span class="deg">47°</span></div>
-                <div class="hour-item"><span class="time">7 PM</span><span class="icon">🌅</span><span class="deg">43°</span></div>
-                <div class="hour-item"><span class="time">8 PM</span><span class="icon">🌙</span><span class="deg">41°</span></div>
-                <div class="hour-item"><span class="time">9 PM</span><span class="icon">🌙</span><span class="deg">39°</span></div>
-                <div class="hour-item"><span class="time">10 PM</span><span class="icon">🌙</span><span class="deg">37°</span></div>
+            <div class="daily-section">
+                <div style="font-size:12px; opacity:0.8; margin-bottom:10px;">7-Day Forecast</div>
+                <div class="daily-row" id="dailyContainer">
+                    <!-- سيتم إنشاؤها بواسطة JS -->
+                </div>
             </div>
-        </div>
-
-        <!-- 6. الأيام القادمة -->
-        <div class="daily-section" id="dailyContainer">
-            <div class="daily-item">
-                <div class="day-info"><span class="day-name">Today</span><span class="day-date">Aug 11</span></div>
-                <div class="mid"><span class="icon">☀️</span></div>
-                <div class="temp-range"><span>32°</span><span style="opacity:0.6;">/ 48°</span></div>
-            </div>
-            <div class="daily-item">
-                <div class="day-info"><span class="day-name">Tomorrow</span><span class="day-date">Aug 12</span></div>
-                <div class="mid"><span class="icon">☀️</span></div>
-                <div class="temp-range"><span>31°</span><span style="opacity:0.6;">/ 51°</span></div>
-            </div>
-            <div class="daily-item">
-                <div class="day-info"><span class="day-name">Thu</span><span class="day-date">Aug 13</span></div>
-                <div class="mid"><span class="icon">☀️</span></div>
-                <div class="temp-range"><span>31°</span><span style="opacity:0.6;">/ 50°</span></div>
-            </div>
-        </div>
-
-        <!-- 7. البحث -->
-        <div class="search-bar">
-            <input type="text" id="cityInput" placeholder="Search for a city..." value="Abul Khasib">
-            <button onclick="searchWeather()" style="background:none; border:none; color:white; cursor:pointer;">🔍</button>
         </div>
     </div>
 
     <script>
-        // إعدادات API
         const API_KEY = "8cfbdd362db68d9f6f10a8afc288c3aa";
         const WEATHER_URL = "https://api.openweathermap.org/data/2.5/";
 
-        async function searchWeather() {
-            const city = document.getElementById('cityInput').value.trim() || "Basra";
+        // 1. دالة تغيير الخلفية حسب الوقت
+        function setBackgroundByTime() {
+            const hour = new Date().getHours();
+            const body = document.body;
+            body.classList.remove('morning', 'afternoon', 'evening', 'night');
+            if (hour >= 6 && hour < 12) body.classList.add('morning');
+            else if (hour >= 12 && hour < 17) body.classList.add('afternoon');
+            else if (hour >= 17 && hour < 20) body.classList.add('evening');
+            else body.classList.add('night');
+        }
+        setBackgroundByTime();
+
+        // 2. البحث بالمدينة
+        async function searchByInput() {
+            const city = document.getElementById('searchInput').value.trim();
+            if (!city) { alert("Please enter a city name!"); return; }
+            await fetchWeather(city);
+        }
+
+        // 3. جلب الموقع التلقائي (IP)
+        async function detectLocation() {
+            try {
+                const ipRes = await fetch('https://ipapi.co/json/');
+                const ipData = await ipRes.json();
+                if (ipData.city) {
+                    await fetchWeather(ipData.city);
+                } else {
+                    await fetchWeather("London"); // افتراضي
+                }
+            } catch {
+                await fetchWeather("Dubai"); // افتراضي
+            }
+        }
+
+        // 4. جلب الطقس
+        async function fetchWeather(city) {
             try {
                 const res = await fetch(`${WEATHER_URL}weather?q=${city}&appid=${API_KEY}&units=metric`);
                 if (!res.ok) throw new Error("City not found");
                 const data = await res.json();
-                
-                // تحديث النصوص
-                document.getElementById('cityDisplay').innerText = data.name;
-                document.getElementById('bigTempDisplay').innerText = Math.round(data.main.temp);
-                
-                // يمكنك إضافة تحديث لباقي العناصر هنا (الرطوبة، الرياح، الأيام.. إلخ)
+                displayWeather(data);
+                fetchForecast(city);
             } catch (e) {
-                alert("City not found");
+                alert("City not found. Please check spelling.");
             }
         }
+
+        function displayWeather(data) {
+            document.getElementById('welcomeScreen').classList.add('hidden');
+            document.getElementById('weatherUI').classList.add('active');
+            
+            document.getElementById('cityDisplay').innerText = data.name;
+            document.getElementById('mainTemp').innerText = Math.round(data.main.temp);
+            document.getElementById('mainDesc').innerText = data.weather[0].description;
+        }
+
+        // 5. جلب التوقعات (7 أيام)
+        async function fetchForecast(city) {
+            try {
+                const res = await fetch(`${WEATHER_URL}forecast?q=${city}&appid=${API_KEY}&units=metric`);
+                const data = await res.json();
+                
+                // تحديث الساعات
+                const hourly = document.getElementById('hourlyContainer');
+                hourly.innerHTML = '';
+                data.list.slice(0, 8).forEach(item => {
+                    const date = new Date(item.dt * 1000);
+                    const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    const div = document.createElement('div');
+                    div.className = 'hour-item';
+                    div.innerHTML = `
+                        <span class="time">${time}</span>
+                        <span class="icon">☀️</span>
+                        <span class="deg">${Math.round(item.main.temp)}°</span>
+                    `;
+                    hourly.appendChild(div);
+                });
+
+                // تحديث 7 أيام (عرضي)
+                const daily = document.getElementById('dailyContainer');
+                daily.innerHTML = '';
+                const days = data.list.filter(item => item.dt_txt.includes("12:00:00"));
+                days.slice(0, 7).forEach(day => {
+                    const date = new Date(day.dt * 1000);
+                    const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+                    const div = document.createElement('div');
+                    div.className = 'daily-item';
+                    div.innerHTML = `
+                        <span class="day">${dayName}</span>
+                        <span class="icon">☀️</span>
+                        <div class="temps">
+                            <span class="high">${Math.round(day.main.temp_max)}°</span>
+                            <span class="low">${Math.round(day.main.temp_min)}°</span>
+                        </div>
+                    `;
+                    daily.appendChild(div);
+                });
+            } catch (e) {
+                console.log("Forecast Error");
+            }
+        }
+
+        // 6. زر Reset
+        function resetApp() {
+            document.getElementById('weatherUI').classList.remove('active');
+            document.getElementById('welcomeScreen').classList.remove('hidden');
+            document.getElementById('searchInput').value = '';
+            document.getElementById('hourlyContainer').innerHTML = '';
+            document.getElementById('dailyContainer').innerHTML = '';
+        }
+
+        // تشغيل البحث عن طريق الضغط على Enter في شاشة الترحيب
+        document.getElementById('searchInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') searchByInput();
+        });
+
+        // التشغيل التلقائي عند فتح الصفحة
+        detectLocation();
     </script>
 </body>
 </html>
