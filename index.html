@@ -15,10 +15,38 @@
             position: relative; overflow: hidden;
         }
 
+        /* --- الغيوم الخلفية الشفافة (جديدة) --- */
+        .bg-cloud-1, .bg-cloud-2 {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.25);
+            filter: blur(60px);
+            z-index: 0;
+            pointer-events: none;
+        }
+        .bg-cloud-1 {
+            width: 500px; height: 250px;
+            top: 10%; left: -10%;
+            animation: floatCloud1 40s linear infinite alternate;
+        }
+        .bg-cloud-2 {
+            width: 400px; height: 200px;
+            bottom: 15%; right: -10%;
+            animation: floatCloud2 35s linear infinite alternate;
+        }
+        @keyframes floatCloud1 {
+            0% { transform: translateX(0) scale(1); }
+            100% { transform: translateX(80vw) scale(1.2); }
+        }
+        @keyframes floatCloud2 {
+            0% { transform: translateX(0) scale(1); }
+            100% { transform: translateX(-70vw) scale(1.1); }
+        }
+
         /* --- طبقة المطر العامة --- */
         .rain-layer {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            z-index: 0; pointer-events: none; opacity: 0;
+            z-index: 1; pointer-events: none; opacity: 0;
             background: rgba(0, 0, 0, 0.1);
             transition: opacity 0.8s ease;
             overflow: hidden;
@@ -36,21 +64,14 @@
 
         .dashboard {
             width: 100%; max-width: 900px;
-            background: rgba(255, 255, 255, 0.4);
+            background: rgba(255, 255, 255, 0.3);
             backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
             border-radius: 40px; padding: 25px;
             box-shadow: 0 30px 60px rgba(0, 0, 0, 0.08);
             display: flex; flex-wrap: wrap; gap: 25px;
             position: relative; overflow: hidden;
             border: 1px solid rgba(255, 255, 255, 0.4);
-            min-height: 500px; z-index: 1;
-        }
-
-        .bg-clouds {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 0; pointer-events: none;
-            background: radial-gradient(circle at 20% 20%, rgba(255,215,0,0.05), transparent 40%),
-                        radial-gradient(circle at 80% 80%, rgba(100,149,237,0.05), transparent 40%);
+            min-height: 500px; z-index: 10;
         }
 
         /* --- رسالة الترحيب --- */
@@ -67,7 +88,7 @@
         /* --- لوحة الطقس اليسرى --- */
         .left-panel {
             flex: 1.2; min-width: 280px; border-radius: 30px; padding: 25px; color: white;
-            position: relative; z-index: 1; overflow: hidden;
+            position: relative; z-index: 15; overflow: hidden;
             box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
             transition: background 0.8s ease; display: none;
         }
@@ -95,7 +116,7 @@
         .stat-box .lbl { font-size: 10px; opacity: 0.6; margin-top: 2px; }
 
         /* --- التوقعات اليمنى --- */
-        .right-panel { flex: 2; min-width: 300px; z-index: 1; position: relative; display: none; }
+        .right-panel { flex: 2; min-width: 300px; z-index: 15; position: relative; display: none; }
         .right-panel.active { display: block; }
         .forecast-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 15px; }
 
@@ -126,7 +147,6 @@
 
         .cloud-icon {
             font-size: 50px; color: #b0bec5; position: absolute;
-            /* ثابتة لا تدور */
         }
         
         /* تأثير الوميض (البرق) */
@@ -196,6 +216,10 @@
     </style>
 </head>
 <body>
+
+    <!-- الغيوم الخلفية -->
+    <div class="bg-cloud-1"></div>
+    <div class="bg-cloud-2"></div>
 
     <!-- طبقة المطر العامة للشاشة -->
     <div class="rain-layer" id="rainLayer"></div>
@@ -366,10 +390,8 @@
                     let innerHTML = '';
                     
                     if (id === 800) {
-                        // مشمس: شمس تدور
                         innerHTML = `<div class="weather-icon-box"><div class="sun-icon">☀️</div></div>`;
                     } else if (id >= 500 && id < 600) {
-                        // مطر: غيمة ثابتة + مطر يتساقط
                         let dropsHTML = '';
                         for(let i=0; i<10; i++) {
                             dropsHTML += `<div class="rain-drop" style="left:${Math.random()*100}%; animation-delay:${Math.random()}s;"></div>`;
@@ -381,7 +403,6 @@
                             </div>
                         `;
                     } else if (id >= 200 && id < 300) {
-                        // رعد/عاصفة: غيمة + برق يلمع
                         innerHTML = `
                             <div class="weather-icon-box">
                                 <div class="cloud-icon">⛈️</div>
@@ -389,7 +410,6 @@
                             </div>
                         `;
                     } else {
-                        // غائم: غيمة ثابتة فقط
                         innerHTML = `<div class="weather-icon-box"><div class="cloud-icon">☁️</div></div>`;
                     }
 
