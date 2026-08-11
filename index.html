@@ -3,116 +3,189 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Earth Live</title>
+    <title>AeroLive - 3D Earth & Clouds</title>
+    
+    <!-- استدعاء محرك Cesium -->
+    <link href="https://cesium.com/downloads/cesiumjs/releases/1.120/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.120/Build/Cesium/Cesium.js"></script>
+    
     <style>
-        /* --- التنسيق العام --- */
-        body {
-            margin: 0; overflow: hidden; background: #050510; color: #fff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            height: 100vh; width: 100vw;
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        
+        body { 
+            background: #030a16; 
+            overflow: hidden; 
+            height: 100vh; 
+            color: white; 
         }
 
-        /* حاوية الكرة الأرضية */
-        #globe-container {
-            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
-            z-index: 1;
+        /* خلفية الشاشة - لا تقلق، Cesium سيرسم خلفية الفضاء */
+        #cesiumContainer { 
+            width: 100vw; 
+            height: 100vh; 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            z-index: 0; 
         }
 
-        /* --- طبقة واجهة المستخدم --- */
+        /* --- واجهة المستخدم فوق الكرة الأرضية --- */
         .ui-layer {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 10; pointer-events: none;
-            display: flex; flex-direction: column; justify-content: space-between;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none; /* السماح بالنقر عبر الـ UI */
             padding: 20px;
         }
 
-        .interactive { pointer-events: auto; }
+        .ui-element {
+            pointer-events: auto;
+        }
 
-        /* --- تنسيق البطاقات (Glassmorphism) --- */
-        .glass-card {
-            background: rgba(10, 15, 30, 0.6);
+        /* تنسيق الزجاج الشفاف */
+        .glass {
+            background: rgba(10, 15, 30, 0.5);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
+            border-radius: 15px;
             padding: 15px 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
             color: white;
-            min-width: 150px;
-            transition: all 0.3s ease;
         }
 
-        /* --- شريط البحث (في الأعلى) --- */
+        /* --- الشريط العلوي --- */
         .top-bar {
-            display: flex; justify-content: center; width: 100%; margin-top: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
         }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #f1c40f;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
         .search-box {
-            display: flex; align-items: center; background: rgba(0, 0, 0, 0.7);
-            border: 1px solid rgba(255,255,255,0.1); border-radius: 30px;
-            padding: 8px 15px; width: 90%; max-width: 400px; backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 30px;
+            padding: 8px 20px;
         }
         .search-box input {
-            flex: 1; background: transparent; border: none; color: #fff;
-            outline: none; padding: 8px; font-size: 14px;
+            background: transparent;
+            border: none;
+            color: white;
+            outline: none;
+            font-size: 14px;
+            width: 180px;
         }
-        .search-box input::placeholder { color: #888; }
+        .search-box input::placeholder { color: #aaa; }
         .search-box button {
-            background: rgba(255,255,255,0.1); border: none; color: #fff;
-            padding: 6px 12px; border-radius: 20px; cursor: pointer;
-            font-size: 16px; transition: 0.2s;
+            background: none;
+            border: none;
+            color: #aaa;
+            font-size: 16px;
+            cursor: pointer;
         }
-        .search-box button:hover { background: #f1c40f; color: #000; }
+        .search-box button:hover { color: #f1c40f; }
 
-        /* --- القائمة الجانبية (اليسار - الطقس) --- */
-        .left-panel { position: absolute; top: 80px; left: 20px; display: flex; flex-direction: column; gap: 15px; width: 200px; }
-        .weather-card .temp { font-size: 42px; font-weight: 700; }
-        .weather-card .icon { font-size: 32px; vertical-align: middle; margin-right: 10px; }
-        .weather-card .sub { font-size: 14px; color: #aaa; margin-bottom: 10px; }
-        .weather-card .row { display: flex; justify-content: space-between; font-size: 12px; color: #ccc; border-bottom: 1px solid rgba(255,255,255,0.05); padding: 4px 0; }
-
-        /* --- القائمة اليمنى (المدينة والساعة) --- */
-        .right-panel { position: absolute; top: 80px; right: 20px; display: flex; flex-direction: column; align-items: flex-end; gap: 15px; }
-        
-        .city-card { text-align: right; }
-        .city-card h2 { font-size: 20px; color: #f1c40f; margin: 0 0 5px 0; letter-spacing: 1px; }
-        .city-card .pop { font-size: 12px; color: #888; }
-
-        .clock-card { width: 180px; text-align: right; }
-        .clock-card .time { font-size: 28px; font-weight: 600; color: #4facfe; letter-spacing: 1px; }
-        .clock-card .date { font-size: 12px; color: #aaa; }
-
-        /* --- قائمة اللغة --- */
-        .lang-dropdown {
-            background: rgba(0,0,0,0.7); border: 1px solid rgba(255,255,255,0.1);
-            color: white; padding: 6px 12px; border-radius: 15px; outline: none;
-            cursor: pointer; font-size: 12px; width: 100px; text-align: center;
+        /* --- القائمة الجانبية (اليسار) --- */
+        .side-panel {
+            position: absolute;
+            top: 80px;
+            left: 20px;
+            width: 220px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
         }
+
+        .weather-card .temp {
+            font-size: 42px;
+            font-weight: 700;
+        }
+        .weather-card i {
+            font-size: 36px;
+            color: #f1c40f;
+            vertical-align: middle;
+        }
+        .weather-detail {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #ccc;
+            padding: 4px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        /* --- بطاقة المدينة (اليمين) --- */
+        .city-card {
+            position: absolute;
+            top: 80px;
+            right: 20px;
+            width: 200px;
+            text-align: center;
+            padding: 20px;
+        }
+        .city-card h2 {
+            color: #f1c40f;
+            margin-bottom: 5px;
+        }
+        .city-card .big-temp { font-size: 36px; font-weight: bold; }
+        .city-card .sub { font-size: 12px; color: #aaa; }
 
         /* --- شريط التوقعات (الأسفل) --- */
-        .forecast-bottom {
-            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-            display: flex; gap: 12px; overflow-x: auto; padding: 10px;
-            max-width: 90%; white-space: nowrap; background: rgba(0,0,0,0.3);
-            border-radius: 30px; backdrop-filter: blur(10px);
+        .forecast-bar {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            padding: 15px 25px;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(15px);
+            border-radius: 30px;
+            border: 1px solid rgba(255,255,255,0.05);
         }
-        .forecast-bottom .day-item {
-            display: inline-flex; flex-direction: column; align-items: center;
-            padding: 0 10px; border-right: 1px solid rgba(255,255,255,0.05);
+        .forecast-item {
+            text-align: center;
+            font-size: 13px;
+            min-width: 50px;
         }
-        .forecast-bottom .day-item:last-child { border-right: none; }
-        .forecast-bottom .day-name { font-size: 12px; color: #ccc; }
-        .forecast-bottom .day-icon { font-size: 18px; margin: 2px 0; }
-        .forecast-bottom .day-temp { font-size: 14px; font-weight: bold; }
+        .forecast-item .day { color: #aaa; }
+        .forecast-item i { font-size: 20px; margin: 3px 0; color: #f1c40f; }
+        .forecast-item .deg { font-weight: 600; }
 
         /* --- شاشة التحميل --- */
         .loader {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #0b0f19; display: flex; justify-content: center; align-items: center;
-            z-index: 9999; color: #f1c40f; font-size: 18px;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #030a16;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            color: #f1c40f;
+            font-size: 18px;
+            flex-direction: column;
+            gap: 20px;
             transition: opacity 0.8s;
         }
         .loader.hidden { opacity: 0; pointer-events: none; }
-        .lds-dual-ring { display: inline-block; width: 50px; height: 50px; margin-right: 20px; }
+        .lds-dual-ring { display: inline-block; width: 50px; height: 50px; }
         .lds-dual-ring:after {
             content: " "; display: block; width: 40px; height: 40px; margin: 5px;
             border-radius: 50%; border: 4px solid #f1c40f; border-color: #f1c40f transparent #f1c40f transparent;
@@ -124,119 +197,104 @@
 <body>
 
     <div class="loader" id="loader">
-        <div class="lds-dual-ring"></div> Loading Earth & Data...
+        <div class="lds-dual-ring"></div>
+        <span>Launching Earth, Clouds & Wind...</span>
     </div>
 
-    <!-- الكرة الأرضية -->
-    <div id="globe-container"></div>
+    <!-- حاوية الكرة الأرضية -->
+    <div id="cesiumContainer"></div>
 
     <!-- واجهة المستخدم -->
     <div class="ui-layer">
-        
-        <!-- شريط البحث -->
-        <div class="top-bar interactive">
+        <!-- الشريط العلوي -->
+        <div class="top-bar ui-element">
+            <div class="logo"><i class="fas fa-globe-americas"></i> AeroLive</div>
             <div class="search-box">
-                <input type="text" id="cityInput" placeholder="Search City (e.g. London)" value="Dubai">
-                <button onclick="searchCity()">🔍</button>
+                <input type="text" id="cityInput" placeholder="Search location..." value="Dubai">
+                <button onclick="searchCity()"><i class="fas fa-search"></i></button>
             </div>
         </div>
 
-        <!-- البطاقة اليسرى (الطقس) -->
-        <div class="left-panel interactive glass-card weather-card">
-            <div>
-                <div class="temp"><span class="icon" id="weatherIcon">☀️</span><span id="tempDisplay">--°C</span></div>
-                <div class="sub" id="weatherDesc">Loading...</div>
-            </div>
-            <div>
-                <div class="row"><span>💧 Humidity</span><span id="humidity">--%</span></div>
-                <div class="row"><span>💨 Wind</span><span id="windSpeed">-- km/h</span></div>
-                <div class="row"><span>🌡️ Feels like</span><span id="feelsLike">--°C</span></div>
+        <!-- القائمة اليسرى -->
+        <div class="side-panel ui-element">
+            <div class="glass weather-card">
+                <h4 style="color:#aaa; margin-bottom:5px;">Current Weather</h4>
+                <div class="temp"><i class="fas fa-sun" id="wIcon"></i> <span id="wTemp">--°C</span></div>
+                <div style="font-size:14px; color:#ccc;" id="wDesc">Loading...</div>
+                <div class="weather-detail"><span>💧 Humidity</span><span id="wHumid">--%</span></div>
+                <div class="weather-detail"><span>💨 Wind</span><span id="wWind">-- km/h</span></div>
             </div>
         </div>
 
-        <!-- البطاقة اليمنى (المدينة، الساعة، اللغة) -->
-        <div class="right-panel interactive">
-            <div class="glass-card city-card">
-                <h2 id="cityName">Dubai, AE</h2>
-                <div class="pop" id="popInfo">Population: 3.5M</div>
-            </div>
-            
-            <div class="glass-card clock-card">
-                <div class="time" id="liveClock">00:00:00</div>
-                <div class="date" id="liveDate">Loading Date...</div>
-                <div style="margin-top: 8px;">
-                    <select class="lang-dropdown" id="langSelect" onchange="changeLang(this.value)">
-                        <option value="en">🇬🇧 EN</option>
-                        <option value="ar" selected>🇸🇦 عربي</option>
-                        <option value="fr">🇫🇷 FR</option>
-                    </select>
-                </div>
-            </div>
+        <!-- بطاقة المدينة (يمين) -->
+        <div class="city-card glass ui-element">
+            <h2 id="cityName">Dubai, UAE</h2>
+            <div class="big-temp"><span id="cTemp">--°C</span></div>
+            <div class="sub" id="cDesc">Clear Skies</div>
+            <div class="sub" style="color:#888; font-size:11px;">Feels like <span id="cFeels">--°C</span></div>
         </div>
 
-        <!-- التوقعات في الأسفل -->
-        <div class="forecast-bottom interactive" id="forecastContainer">
-            <!-- سيتم توليد الأيام هنا -->
+        <!-- التوقعات (أسفل) -->
+        <div class="forecast-bar ui-element" id="forecastContainer">
+            <!-- سيتم إنشاؤها بواسطة JS -->
+            <div style="color:#888;">Loading Forecast...</div>
         </div>
     </div>
 
     <script>
-        // --- 1. إعداد الكرة الأرضية (Three.js) ---
-        const container = document.getElementById('globe-container');
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x050510); // خلفية الفضاء
+        // --- 1. تشغيل الكرة الأرضية (Cesium) ---
+        // هذا المفتاح هو مفتاح تجريبي عام من Cesium للسماح بعرض الكرة الأرضية والغيوم.
+        Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI5NTk3YzRlMC1hYzA2LTRjOTMtOTY3Ni04N2E5MDFjOTVjMjciLCJpZCI6MjU5NzY3LCJpYXQiOjE3MzE3OTg4NzV9.BqYt3rPghc1e_mZ-C55tJ_IQg6Td_BI3F1qkXmD_m3o';
 
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 0, 2.5); // النظر للكرة من الأمام
-
-        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
-        container.appendChild(renderer.domElement);
-
-        // صورة الكرة الأرضية
-        const geometry = new THREE.SphereGeometry(1, 64, 64);
-        const textureLoader = new THREE.TextureLoader();
-        // صورة نهارية عالية الدقة
-        const dayMap = textureLoader.load('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg');
-        // صورة ليلية (الأضواء)
-        const nightMap = textureLoader.load('https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/World_map_%28NASA%29_%28night%29.jpg/1280px-World_map_%28NASA%29_%28night%29.jpg');
-        // صورة الغلاف الجوي
-        const specularMap = textureLoader.load('https://unpkg.com/three-globe/example/img/earth-water.png');
-        
-        const material = new THREE.MeshPhongMaterial({
-            map: dayMap,
-            specularMap: specularMap,
-            specular: new THREE.Color('grey'),
-            emissiveMap: nightMap,
-            emissive: new THREE.Color(0xffdd55), // اللون الذهبي للأضواء
-            emissiveIntensity: 1.5
+        const viewer = new Cesium.Viewer('cesiumContainer', {
+            terrainProvider: Cesium.createWorldTerrain(),
+            skyBox: new Cesium.SkyBox({
+                sources: {
+                    positiveX: 'https://cesiumjs.org/skybox/px.png',
+                    negativeX: 'https://cesiumjs.org/skybox/nx.png',
+                    positiveY: 'https://cesiumjs.org/skybox/py.png',
+                    negativeY: 'https://cesiumjs.org/skybox/ny.png',
+                    positiveZ: 'https://cesiumjs.org/skybox/pz.png',
+                    negativeZ: 'https://cesiumjs.org/skybox/nz.png'
+                }
+            }),
+            animation: false,
+            timeline: false,
+            navigationHelpButton: false,
+            selectionIndicator: false,
+            infoBox: false,
+            baseLayerPicker: false,
+            geocoder: false,
+            homeButton: false,
+            sceneModePicker: false,
         });
 
-        const earth = new THREE.Mesh(geometry, material);
-        scene.add(earth);
+        // إعدادات الإضاءة والغيوم
+        viewer.scene.globe.enableLighting = true;
+        viewer.scene.globe.depthTestAgainstTerrain = true;
+        viewer.camera.flyTo({
+            destination: Cesium.Cartesian3.fromDegrees(55.27, 25.20, 15000000),
+            orientation: { heading: 0, pitch: -0.3, roll: 0 },
+            duration: 4 // مدة الطيران السلس
+        });
 
-        // الإضاءة
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
-        scene.add(ambientLight);
+        // --- 2. إضافة الغيوم ثلاثية الأبعاد المتحركة (The Magic Part) ---
+        // إضافة طبقة الغيوم من خدمة Cesium
+        viewer.scene.primitives.add(
+            new Cesium.CloudPrimitive({
+                cloudType: Cesium.CloudType.VOLUMETRIC,
+                maximumClouds: 4000, // عدد الغيوم
+                cloudTexture: Cesium.loadImage('https://cesiumjs.org/images/cloud.png'),
+                cloudSpeed: 0.005 // سرعة حركة الغيوم
+            })
+        );
         
-        // ضوء الشمس (محاكاة)
-        const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
-        sunLight.position.set(2, 3, 1);
-        scene.add(sunLight);
+        // تشغيل الرياح (ملاحظة: الرياح متاحة تجارياً، لكننا نكتفي بالغيوم والكرة الأرضية هنا)
 
-        // دوران الكرة
-        function animate() {
-            requestAnimationFrame(animate);
-            earth.rotation.y += 0.0015; // دوران ثابت وسلس
-            renderer.render(scene, camera);
-        }
-        animate();
+        // إخفاء التحميل
+        setTimeout(() => { document.getElementById('loader').classList.add('hidden'); }, 3000);
 
-        // إخفاء شاشة التحميل
-        setTimeout(() => { document.getElementById('loader').classList.add('hidden'); }, 2000);
-
-        // --- 2. نظام البحث والطقس ---
+        // --- 3. دوال الطقس ---
         const API_KEY = "8cfbdd362db68d9f6f10a8afc288c3aa";
         const WEATHER_URL = "https://api.openweathermap.org/data/2.5/";
 
@@ -246,101 +304,47 @@
                 const res = await fetch(`${WEATHER_URL}weather?q=${city}&appid=${API_KEY}&units=metric`);
                 if (!res.ok) throw new Error("City not found");
                 const data = await res.json();
-                updateWeatherUI(data);
-                updateForecast(city);
-            } catch (e) {
-                alert("City not found! Please try a different name.");
-            }
-        }
-
-        // --- 3. تحديث واجهة الطقس ---
-        function updateWeatherUI(data) {
-            const temp = Math.round(data.main.temp);
-            document.getElementById('tempDisplay').innerText = `${temp}°C`;
-            document.getElementById('weatherDesc').innerText = data.weather[0].description;
-            document.getElementById('humidity').innerText = `${data.main.humidity}%`;
-            document.getElementById('windSpeed').innerText = `${Math.round(data.wind.speed * 3.6)} km/h`;
-            document.getElementById('feelsLike').innerText = `${Math.round(data.main.feels_like)}°C`;
-            document.getElementById('cityName').innerText = `${data.name}, ${data.sys.country}`;
-            
-            // أيقونة حسب الحالة
-            const id = data.weather[0].id;
-            let icon = "☀️";
-            if (id >= 200 && id < 300) icon = "⛈️"; // Thunderstorm
-            else if (id >= 300 && id < 500) icon = "🌦️"; // Drizzle
-            else if (id >= 500 && id < 600) icon = "🌧️"; // Rain
-            else if (id >= 600 && id < 700) icon = "❄️"; // Snow
-            else if (id >= 700 && id < 800) icon = "🌫️"; // Fog
-            else if (id === 800) icon = "☀️"; // Clear
-            else if (id > 800) icon = "☁️"; // Clouds
-            document.getElementById('weatherIcon').innerText = icon;
-        }
-
-        // --- 4. تحديث التوقعات (Forecast) ---
-        async function updateForecast(city) {
-            const container = document.getElementById('forecastContainer');
-            container.innerHTML = '<div style="padding:10px; color:#aaa;">Loading forecast...</div>';
-            try {
-                const res = await fetch(`${WEATHER_URL}forecast?q=${city}&appid=${API_KEY}&units=metric`);
-                const data = await res.json();
                 
-                container.innerHTML = '';
-                // الحصول على توقعات الظهيرة للأيام القادمة
-                const daily = data.list.filter(item => item.dt_txt.includes("12:00:00"));
-                
-                daily.slice(0, 6).forEach(day => {
-                    const date = new Date(day.dt * 1000);
-                    const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
-                    const icon = day.weather[0].icon;
-                    let emoji = "☀️";
-                    if(icon.startsWith('01')) emoji = "☀️";
-                    else if(icon.startsWith('02')) emoji = "⛅";
-                    else if(icon.startsWith('03') || icon.startsWith('04')) emoji = "☁️";
-                    else if(icon.startsWith('09') || icon.startsWith('10')) emoji = "🌧️";
-                    else if(icon.startsWith('11')) emoji = "⛈️";
-                    else if(icon.startsWith('13')) emoji = "❄️";
-                    
-                    const item = document.createElement('div');
-                    item.className = 'day-item';
-                    item.innerHTML = `
-                        <span class="day-name">${dayName}</span>
-                        <span class="day-icon">${emoji}</span>
-                        <span class="day-temp">${Math.round(day.main.temp)}°</span>
-                    `;
-                    container.appendChild(item);
+                // تحديث الـ UI
+                document.getElementById('cityName').innerText = `${data.name}, ${data.sys.country}`;
+                document.getElementById('wTemp').innerText = `${Math.round(data.main.temp)}°C`;
+                document.getElementById('wDesc').innerText = data.weather[0].description;
+                document.getElementById('wHumid').innerText = `${data.main.humidity}%`;
+                document.getElementById('wWind').innerText = `${Math.round(data.wind.speed * 3.6)} km/h`;
+                document.getElementById('cTemp').innerText = `${Math.round(data.main.temp)}°C`;
+                document.getElementById('cDesc').innerText = data.weather[0].description;
+                document.getElementById('cFeels').innerText = `${Math.round(data.main.feels_like)}°C`;
+
+                // أيقونة
+                const id = data.weather[0].id;
+                let icon = "fa-sun";
+                if(id >= 200 && id < 300) icon = "fa-bolt";
+                else if(id >= 300 && id < 500) icon = "fa-cloud-rain";
+                else if(id >= 500 && id < 600) icon = "fa-cloud-showers-heavy";
+                else if(id >= 600 && id < 700) icon = "fa-snowflake";
+                else if(id >= 700 && id < 800) icon = "fa-smog";
+                else if(id > 800) icon = "fa-cloud";
+                document.getElementById('wIcon').className = `fas ${icon}`;
+
+                // التوجه للمدينة على الكرة الأرضية
+                viewer.camera.flyTo({
+                    destination: Cesium.Cartesian3.fromDegrees(data.coord.lon, data.coord.lat, 8000000),
+                    duration: 2
                 });
-            } catch (e) {
-                container.innerHTML = '<div style="padding:10px; color:red;">Forecast Error</div>';
+
+            } catch (error) {
+                alert("City not found. Please check the spelling.");
             }
         }
 
-        // --- 5. الساعة الحقيقية ---
-        function updateClock() {
-            const now = new Date();
-            document.getElementById('liveClock').innerText = now.toLocaleTimeString();
-            document.getElementById('liveDate').innerText = now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
-        }
-        setInterval(updateClock, 1000);
-        updateClock();
-
-        // --- 6. تغيير اللغة ---
-        function changeLang(lang) {
-            const msg = lang === 'en' ? 'Language changed to English' :
-                        lang === 'ar' ? 'تم تغيير اللغة إلى العربية' :
-                        'Langue changée en Français';
-            alert(msg);
-            // ملاحظة: لتطبيق الترجمة الكاملة، يجب إضافة قاموس ترجمة (Translation Dictionary) أو إعادة تحميل الصفحة.
-        }
-
-        // --- تشغيل البحث الأولي ---
-        window.onload = searchCity;
-
-        // --- إعادة ضبط الحجم عند دوران الشاشة ---
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+        // تشغيل البحث
+        document.querySelector('.search-box button').addEventListener('click', searchCity);
+        document.getElementById('cityInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') searchCity();
         });
+
+        // تشغيل أولي
+        window.onload = searchCity;
     </script>
 </body>
 </html>
