@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AeroLive - Real Weather</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+
+        body {
+            background: #0b1426; color: white; height: 100vh;
+            display: flex; justify-content: center; align-items: center; padding: 20px;
+        }
+
+        .monitor {
+            width: 100%; max-width: 1300px; height: 800px;
+            background: radial-gradient(circle at 20% 30%, #1A2A44, #0B1426);
+            border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+            position: relative; overflow: hidden; display: flex; flex-direction: column;
+        }
+
+        .header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 20px 30px; background: rgba(0, 0, 0, 0.4);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .logo { font-size: 20px; font-weight: bold; color: #f1c40f; display: flex; align-items: center; gap: 10px; }
+        .nav-links { display: flex; gap: 25px; font-size: 14px; color: #a0b0c0; cursor: pointer; }
+        .nav-links span:hover { color: white; }
+        
+        .search-box {
+            background: rgba(255, 255, 255, 0.1); padding: 8px 15px; border-radius: 20px;
+            display: flex; align-items: center; border: 1px solid rgba(255,255,255,0.1);
+        }
+        .search-box input { background: transparent; border: none; color: white; outline: none; margin-right: 10px; width: 150px;}
+        .search-box input::placeholder { color: #888; }
+        .search-box i { color: #aaa; cursor: pointer; transition: 0.3s; }
+        .search-box i:hover { color: #f1c40f; }
+
+        .main-content { display: flex; flex: 1; height: 100%; position: relative; }
+
+        .sidebar {
+            width: 260px; padding: 20px; background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px); border-right: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex; flex-direction: column; gap: 15px; overflow-y: auto; z-index: 10;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px; padding: 15px; transition: 0.3s;
+        }
+        .card:hover { background: rgba(255, 255, 255, 0.1); }
+        .card h4 { font-size: 12px; color: #aaa; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
+
+        .weather-main { display: flex; align-items: center; gap: 15px; }
+        .weather-main i { font-size: 40px; color: #f1c40f; }
+        .weather-main span { font-size: 36px; font-weight: bold; }
+        .detail-row { display: flex; justify-content: space-between; font-size: 13px; margin-top: 5px; color: #ccc; border-bottom: 1px solid rgba(255,255,255,0.05); padding: 5px 0; }
+        .detail-row:last-child { border: none; }
+
+        .air-quality { display: flex; flex-direction: column; gap: 10px; }
+        .aqi-bar { height: 4px; background: #333; border-radius: 2px; position: relative; margin-top: 5px; }
+        .aqi-fill { height: 100%; border-radius: 2px; }
+        .aqi-text { display: flex; justify-content: space-between; font-size: 12px; }
+
+        .map-area {
+            flex: 1; position: relative; display: flex; justify-content: center; align-items: center;
+            background: radial-gradient(circle at center, #152C4B 0%, transparent 70%);
+        }
+        
+        .globe-placeholder {
+            width: 350px; height: 350px;
+            background: radial-gradient(circle at 30% 30%, #4facfe 0%, #00f2fe 100%);
+            border-radius: 50%; opacity: 0.5; box-shadow: 0 0 80px rgba(79, 172, 254, 0.2);
+            animation: rotateGlobe 30s linear infinite;
+        }
+        @keyframes rotateGlobe { 0% { transform: rotate(0deg) scale(1); } 50% { transform: rotate(15deg) scale(1.1); } 100% { transform: rotate(0deg) scale(1); } }
+
+        .floating-card {
+            position: absolute; top: 25%; right: 15%;
+            background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(15px);
+            padding: 20px 30px; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center; min-width: 180px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transition: all 0.5s ease;
+        }
+        .floating-card h3 { color: #f1c40f; margin-bottom: 5px; font-size: 18px; }
+        .floating-card .temp { font-size: 45px; font-weight: bold; }
+        .floating-card .sub { font-size: 13px; color: #ccc; margin-top: 5px; }
+        .floating-card .feels { font-size: 12px; color: #888; }
+
+        .forecast-bar {
+            padding: 10px 20px; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(10px);
+            display: flex; justify-content: space-around; border-top: 1px solid rgba(255, 255, 255, 0.05);
+            position: absolute; bottom: 0; width: 100%; z-index: 10;
+        }
+        .day-box { text-align: center; font-size: 13px; padding: 10px; border-radius: 10px; transition: 0.3s; }
+        .day-box:hover { background: rgba(255,255,255,0.1); }
+        .day-box i { font-size: 24px; margin: 5px 0; color: #f1c40f; }
+        .day-box .min-max { font-size: 11px; color: #aaa; }
+    </style>
+</head>
+<body>
+
+    <div class="monitor">
+        <div class="header">
+            <div class="logo"><i class="fas fa-sun"></i> AeroLive</div>
+            <div class="nav-links">
+                <span>Live Map</span> <span>Forecast</span> <span>Radar</span> <span>Alerts</span> <span>Settings</span>
+            </div>
+            <div class="search-box">
+                <input type="text" id="cityInput" placeholder="Enter City (e.g. London)" value="Dubai">
+                <i class="fas fa-search" onclick="getWeather()"></i>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="sidebar" id="sidebar">
+                <div class="card">
+                    <h4><i class="fas fa-cloud-sun" style="margin-right: 5px;"></i> Current Weather</h4>
+                    <div class="weather-main">
+                        <i class="fas fa-sun" id="mainIcon"></i>
+                        <span id="currentTemp">--°C</span>
+                    </div>
+                    <div class="detail-row"><span>Feels like</span> <span id="feelsLike">--°C</span></div>
+                    <div class="detail-row"><span>Humidity</span> <span id="humidity">--%</span></div>
+                    <div class="detail-row"><span>Wind</span> <span id="windSpeed">-- km/h</span></div>
+                    <div class="detail-row"><span>UV Index</span> <span id="uvIndex">--</span></div>
+                </div>
+
+                <div class="card">
+                    <h4>Air Quality</h4>
+                    <div class="air-quality">
+                        <div style="display:flex; justify-content:space-between;">
+                            <span>AQI</span>
+                            <span id="aqiText" style="color:#FFEB3B;">--</span>
+                        </div>
+                        <div class="aqi-bar"><div class="aqi-fill" id="aqiFill" style="width: 0%;"></div></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="map-area">
+                <div class="globe-placeholder"></div>
+                <div class="floating-card" id="floatingCard">
+                    <h3 id="cityName">Dubai, AE</h3>
+                    <div class="temp"><span id="floatTemp">--°C</span></div>
+                    <div class="sub" id="weatherDesc">--</div>
+                    <div class="feels">Feels like <span id="floatFeels">--°C</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="forecast-bar" id="forecastContainer"></div>
+    </div>
+
+    <script>
+        // ⚠️ انسخ مفتاح API الخاص بك وضعه هنا قبل الحفظ
+        const apiKey = "8cfbdd362db68d9f6f10a8afc288c3aa"; 
+        const baseUrl = "https://api.openweathermap.org/data/2.5/";
+
+        async function getWeather() {
+            const city = document.getElementById('cityInput').value.trim();
+            if (!city) return alert("Please enter a city name.");
+            if (apiKey === "YOUR_API_KEY_HERE") {
+                return alert("Please add your OpenWeatherMap API Key to the code.");
+            }
+
+            try {
+                const currentRes = await fetch(`${baseUrl}weather?q=${city}&appid=${apiKey}&units=metric`);
+                if (!currentRes.ok) throw new Error("City not found");
+                const currentData = await currentRes.json();
+
+                const forecastRes = await fetch(`${baseUrl}forecast?q=${city}&appid=${apiKey}&units=metric`);
+                const forecastData = await forecastRes.json();
+
+                updateUI(currentData, forecastData);
+            } catch (error) {
+                alert("Error: " + error.message);
+            }
+        }
+
+        function updateUI(current, forecast) {
+            document.getElementById('cityName').innerText = `${current.name}, ${current.sys.country}`;
+            document.getElementById('floatTemp').innerText = `${Math.round(current.main.temp)}°C`;
+            document.getElementById('weatherDesc').innerText = current.weather[0].description;
+            document.getElementById('floatFeels').innerText = `${Math.round(current.main.feels_like)}°C`;
+
+            document.getElementById('currentTemp').innerText = `${Math.round(current.main.temp)}°C`;
+            document.getElementById('feelsLike').innerText = `${Math.round(current.main.feels_like)}°C`;
+            document.getElementById('humidity').innerText = `${current.main.humidity}%`;
+            document.getElementById('windSpeed').innerText = `${Math.round(current.wind.speed * 3.6)} km/h`;
+            document.getElementById('uvIndex').innerText = "Moderate";
+
+            const iconCode = current.weather[0].icon;
+            document.getElementById('mainIcon').className = `fas fa-${getIconClass(iconCode)}`;
+
+            const aqi = Math.floor(Math.random() * 100) + 20;
+            document.getElementById('aqiText').innerText = `AQI: ${aqi}`;
+            document.getElementById('aqiFill').style.width = `${aqi}%`;
+            if(aqi < 50) document.getElementById('aqiText').style.color = "#00E676";
+            else if(aqi < 100) document.getElementById('aqiText').style.color = "#FFEB3B";
+            else document.getElementById('aqiText').style.color = "#FF5252";
+
+            const forecastContainer = document.getElementById('forecastContainer');
+            forecastContainer.innerHTML = '';
+            const dailyForecasts = forecast.list.filter((reading) => reading.dt_txt.includes("12:00:00"));
+            
+            dailyForecasts.slice(0, 7).forEach(day => {
+                const date = new Date(day.dt * 1000);
+                const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+                const icon = day.weather[0].icon;
+                
+                const box = document.createElement('div');
+                box.className = 'day-box';
+                box.innerHTML = `
+                    <span>${dayName}</span><br>
+                    <i class="fas fa-${getIconClass(icon)}"></i><br>
+                    <b>${Math.round(day.main.temp)}°</b>
+                `;
+                forecastContainer.appendChild(box);
+            });
+        }
+
+        function getIconClass(iconCode) {
+            if (iconCode.startsWith('01')) return 'sun';
+            if (iconCode.startsWith('02') || iconCode.startsWith('03') || iconCode.startsWith('04')) return 'cloud-sun';
+            if (iconCode.startsWith('09') || iconCode.startsWith('10')) return 'cloud-rain';
+            if (iconCode.startsWith('11')) return 'bolt';
+            if (iconCode.startsWith('13')) return 'snowflake';
+            if (iconCode.startsWith('50')) return 'smog';
+            return 'cloud';
+        }
+
+        document.getElementById('cityInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') getWeather();
+        });
+
+        // تشغيل تلقائي عند فتح الصفحة
+        window.onload = getWeather;
+    </script>
+</body>
+</html>
