@@ -3,261 +3,344 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>3D Earth & Weather</title>
-    
-    <!-- مكتبة Cesium لعرض الكرة الأرضية الواقعية -->
-    <link href="https://cesium.com/downloads/cesiumjs/releases/1.115/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
-    <script src="https://cesium.com/downloads/cesiumjs/releases/1.115/Build/Cesium/Cesium.js"></script>
-    
+    <title>Earth Live</title>
     <style>
-        body { margin: 0; padding: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
-        #cesiumContainer { width: 100%; height: 100vh; position: absolute; top: 0; left: 0; z-index: 0; }
-        
-        /* ترتيب الـ UI فوق الكرة الأرضية */
+        /* --- التنسيق العام --- */
+        body {
+            margin: 0; overflow: hidden; background: #050510; color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            height: 100vh; width: 100vw;
+        }
+
+        /* حاوية الكرة الأرضية */
+        #globe-container {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 1;
+        }
+
+        /* --- طبقة واجهة المستخدم --- */
         .ui-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 10; pointer-events: none;
-            display: flex; justify-content: space-between; padding: 20px;
+            display: flex; flex-direction: column; justify-content: space-between;
+            padding: 20px;
         }
 
-        /* العناصر التي تتفاعل مع الماوس */
         .interactive { pointer-events: auto; }
 
+        /* --- تنسيق البطاقات (Glassmorphism) --- */
         .glass-card {
-            background: rgba(20, 30, 50, 0.6); backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 20px;
-            padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            color: white; min-width: 200px; transition: all 0.3s;
+            background: rgba(10, 15, 30, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 15px 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            color: white;
+            min-width: 150px;
+            transition: all 0.3s ease;
         }
 
-        /* ------- اليسار ------- */
-        .left-panel { display: flex; flex-direction: column; gap: 15px; width: 260px; }
-        
-        .weather-header { display: flex; justify-content: space-between; align-items: start; }
-        .weather-header .temp { font-size: 48px; font-weight: bold; }
-        .weather-header .icon { font-size: 40px; color: #f1c40f; }
-        
-        .detail-row { display: flex; justify-content: space-between; font-size: 14px; margin-top: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; }
-        
-        .gold-stats { margin-top: 10px; background: rgba(255, 215, 0, 0.1); padding: 10px; border-radius: 12px; border: 1px solid #f1c40f; }
-        .gold-stats .price { font-size: 20px; font-weight: bold; color: #f1c40f; }
-
-        /* ------- اليمين ------- */
-        .right-panel { display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; height: 100%; }
-        
-        .top-right { display: flex; flex-direction: column; align-items: flex-end; gap: 15px; }
-        
-        .city-card h2 { font-size: 24px; color: #f1c40f; margin: 0 0 5px 0; }
-        .city-card .population { font-size: 14px; color: #aaa; }
-
-        /* ------- شريط اللغة ------- */
-        .lang-selector { background: rgba(0,0,0,0.6); padding: 5px 10px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2); color: white; cursor: pointer; outline: none; pointer-events: auto;}
-        .lang-selector option { background: #1a1a2e; color: white; }
-
-        /* تنسيق البحث - غير مرئي لكنه يعمل */
-        .search-bar { 
-            position: absolute; top: 30px; right: 50%; transform: translateX(50%);
-            background: rgba(0,0,0,0.6); padding: 12px 25px; border-radius: 30px;
-            border: 1px solid rgba(255,255,255,0.2); color: white; width: 300px;
-            text-align: center; z-index: 20; pointer-events: auto; outline: none;
+        /* --- شريط البحث (في الأعلى) --- */
+        .top-bar {
+            display: flex; justify-content: center; width: 100%; margin-top: 10px;
         }
-        .search-bar::placeholder { color: rgba(255,255,255,0.6); }
+        .search-box {
+            display: flex; align-items: center; background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 30px;
+            padding: 8px 15px; width: 90%; max-width: 400px; backdrop-filter: blur(10px);
+        }
+        .search-box input {
+            flex: 1; background: transparent; border: none; color: #fff;
+            outline: none; padding: 8px; font-size: 14px;
+        }
+        .search-box input::placeholder { color: #888; }
+        .search-box button {
+            background: rgba(255,255,255,0.1); border: none; color: #fff;
+            padding: 6px 12px; border-radius: 20px; cursor: pointer;
+            font-size: 16px; transition: 0.2s;
+        }
+        .search-box button:hover { background: #f1c40f; color: #000; }
 
-        /* تنسيق شريط التحميل (لأن Cesium ثقيل) */
-        .loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0a0b1e; color: #f1c40f; display: flex; justify-content: center; align-items: center; z-index: 9999; font-size: 20px; transition: opacity 0.5s; }
-        .loading.hidden { opacity: 0; pointer-events: none; }
-        .loader { width: 50px; height: 50px; border: 5px solid #333; border-top: 5px solid #f1c40f; border-radius: 50%; animation: spin 1s linear infinite; margin-right: 15px; }
+        /* --- القائمة الجانبية (اليسار - الطقس) --- */
+        .left-panel { position: absolute; top: 80px; left: 20px; display: flex; flex-direction: column; gap: 15px; width: 200px; }
+        .weather-card .temp { font-size: 42px; font-weight: 700; }
+        .weather-card .icon { font-size: 32px; vertical-align: middle; margin-right: 10px; }
+        .weather-card .sub { font-size: 14px; color: #aaa; margin-bottom: 10px; }
+        .weather-card .row { display: flex; justify-content: space-between; font-size: 12px; color: #ccc; border-bottom: 1px solid rgba(255,255,255,0.05); padding: 4px 0; }
+
+        /* --- القائمة اليمنى (المدينة والساعة) --- */
+        .right-panel { position: absolute; top: 80px; right: 20px; display: flex; flex-direction: column; align-items: flex-end; gap: 15px; }
+        
+        .city-card { text-align: right; }
+        .city-card h2 { font-size: 20px; color: #f1c40f; margin: 0 0 5px 0; letter-spacing: 1px; }
+        .city-card .pop { font-size: 12px; color: #888; }
+
+        .clock-card { width: 180px; text-align: right; }
+        .clock-card .time { font-size: 28px; font-weight: 600; color: #4facfe; letter-spacing: 1px; }
+        .clock-card .date { font-size: 12px; color: #aaa; }
+
+        /* --- قائمة اللغة --- */
+        .lang-dropdown {
+            background: rgba(0,0,0,0.7); border: 1px solid rgba(255,255,255,0.1);
+            color: white; padding: 6px 12px; border-radius: 15px; outline: none;
+            cursor: pointer; font-size: 12px; width: 100px; text-align: center;
+        }
+
+        /* --- شريط التوقعات (الأسفل) --- */
+        .forecast-bottom {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 12px; overflow-x: auto; padding: 10px;
+            max-width: 90%; white-space: nowrap; background: rgba(0,0,0,0.3);
+            border-radius: 30px; backdrop-filter: blur(10px);
+        }
+        .forecast-bottom .day-item {
+            display: inline-flex; flex-direction: column; align-items: center;
+            padding: 0 10px; border-right: 1px solid rgba(255,255,255,0.05);
+        }
+        .forecast-bottom .day-item:last-child { border-right: none; }
+        .forecast-bottom .day-name { font-size: 12px; color: #ccc; }
+        .forecast-bottom .day-icon { font-size: 18px; margin: 2px 0; }
+        .forecast-bottom .day-temp { font-size: 14px; font-weight: bold; }
+
+        /* --- شاشة التحميل --- */
+        .loader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #0b0f19; display: flex; justify-content: center; align-items: center;
+            z-index: 9999; color: #f1c40f; font-size: 18px;
+            transition: opacity 0.8s;
+        }
+        .loader.hidden { opacity: 0; pointer-events: none; }
+        .lds-dual-ring { display: inline-block; width: 50px; height: 50px; margin-right: 20px; }
+        .lds-dual-ring:after {
+            content: " "; display: block; width: 40px; height: 40px; margin: 5px;
+            border-radius: 50%; border: 4px solid #f1c40f; border-color: #f1c40f transparent #f1c40f transparent;
+            animation: spin 1.2s linear infinite;
+        }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-    <div class="loading" id="loadingScreen">
-        <div class="loader"></div>
-        <span>Loading Earth & Data...</span>
+    <div class="loader" id="loader">
+        <div class="lds-dual-ring"></div> Loading Earth & Data...
     </div>
 
-    <!-- شريط البحث في الأعلى -->
-    <input type="text" class="search-bar" id="cityInput" placeholder="Search for a city (e.g. Baghdad, Tokyo)" value="Baghdad" onkeypress="if(event.key === 'Enter') searchCity()">
+    <!-- الكرة الأرضية -->
+    <div id="globe-container"></div>
 
-    <!-- حاوية الكرة الأرضية -->
-    <div id="cesiumContainer"></div>
-
-    <!-- طبقة واجهة المستخدم -->
+    <!-- واجهة المستخدم -->
     <div class="ui-layer">
         
-        <!-- القائمة اليسرى -->
-        <div class="left-panel interactive">
-            <div class="glass-card weather-card" id="weatherCard">
-                <div class="weather-header">
-                    <div class="temp" id="currentTemp">--°C</div>
-                    <div class="icon" id="weatherIcon">🌥️</div>
-                </div>
-                <div style="font-size:16px; color:#ccc;" id="weatherDesc">Loading weather...</div>
-                
-                <div class="detail-row"><span>💧 Humidity</span> <span id="humidity">--%</span></div>
-                <div class="detail-row"><span>💨 Wind</span> <span id="windSpeed">-- km/h</span></div>
-                <div class="detail-row"><span>🌡️ Feels Like</span> <span id="feelsLike">--°C</span></div>
+        <!-- شريط البحث -->
+        <div class="top-bar interactive">
+            <div class="search-box">
+                <input type="text" id="cityInput" placeholder="Search City (e.g. London)" value="Dubai">
+                <button onclick="searchCity()">🔍</button>
+            </div>
+        </div>
 
-                <div class="gold-stats">
-                    <div style="display:flex; justify-content:space-between; font-size:12px; color:#aaa;">
-                        <span>🏅 Gold (USD/Oz)</span>
-                        <span>Population</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between;">
-                        <span class="price" id="goldPrice">$--</span>
-                        <span style="font-size:16px; font-weight:bold; color:#fff;" id="population">--</span>
-                    </div>
+        <!-- البطاقة اليسرى (الطقس) -->
+        <div class="left-panel interactive glass-card weather-card">
+            <div>
+                <div class="temp"><span class="icon" id="weatherIcon">☀️</span><span id="tempDisplay">--°C</span></div>
+                <div class="sub" id="weatherDesc">Loading...</div>
+            </div>
+            <div>
+                <div class="row"><span>💧 Humidity</span><span id="humidity">--%</span></div>
+                <div class="row"><span>💨 Wind</span><span id="windSpeed">-- km/h</span></div>
+                <div class="row"><span>🌡️ Feels like</span><span id="feelsLike">--°C</span></div>
+            </div>
+        </div>
+
+        <!-- البطاقة اليمنى (المدينة، الساعة، اللغة) -->
+        <div class="right-panel interactive">
+            <div class="glass-card city-card">
+                <h2 id="cityName">Dubai, AE</h2>
+                <div class="pop" id="popInfo">Population: 3.5M</div>
+            </div>
+            
+            <div class="glass-card clock-card">
+                <div class="time" id="liveClock">00:00:00</div>
+                <div class="date" id="liveDate">Loading Date...</div>
+                <div style="margin-top: 8px;">
+                    <select class="lang-dropdown" id="langSelect" onchange="changeLang(this.value)">
+                        <option value="en">🇬🇧 EN</option>
+                        <option value="ar" selected>🇸🇦 عربي</option>
+                        <option value="fr">🇫🇷 FR</option>
+                    </select>
                 </div>
             </div>
         </div>
 
-        <!-- القائمة اليمنى -->
-        <div class="right-panel interactive">
-            <div class="top-right">
-                <!-- قائمة اللغات -->
-                <select class="lang-selector" id="langSelector" onchange="changeLanguage(this.value)">
-                    <option value="en">🇬🇧 English</option>
-                    <option value="ar" selected>🇸🇦 العربية</option>
-                    <option value="fr">🇫🇷 Français</option>
-                </select>
-
-                <div class="glass-card city-card">
-                    <h2 id="cityName">Baghdad, IQ</h2>
-                    <div class="population" id="populationSmall">Population: Searching...</div>
-                    <div style="margin-top:5px; font-size:12px; color:#888;" id="countryInfo">Iraq</div>
-                </div>
-            </div>
+        <!-- التوقعات في الأسفل -->
+        <div class="forecast-bottom interactive" id="forecastContainer">
+            <!-- سيتم توليد الأيام هنا -->
         </div>
     </div>
 
     <script>
-        // إعدادات API
-        const API_KEY = "8cfbdd362db68d9f6f10a8afc288c3aa";
-        const WEATHER_URL = "https://api.openweathermap.org/data/2.5/weather?";
-        const GOLD_URL = "https://api.gold-api.com/price/XAU";
-        // ملاحظة: Gold API يتطلب مفتاحاً خاصاً عادةً، استخدمت محاكاة بيانات لأن المفتاح المجاني محدود جداً.
-        // جودة الهواء والعملات وسعر الذهب الحقيقي يتطلب اشتراكات مدفوعة.
+        // --- 1. إعداد الكرة الأرضية (Three.js) ---
+        const container = document.getElementById('globe-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x050510); // خلفية الفضاء
 
-        // ------- 1. إعداد الكرة الأرضية الواقعية (Cesium) -------
-        let viewer;
-        function initEarth() {
-            Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI5NTk3YzRlMC1hYzA2LTRjOTMtOTY3Ni04N2E5MDFjOTVjMjciLCJpZCI6MjU5NzY3LCJpYXQiOjE3MzE3OTg4NzV9.BqYt3rPghc1e_mZ-C55tJ_IQg6Td_BI3F1qkXmD_m3o';
-            // (هذا مفتاح تجريبي للعرض فقط، يُفضل استخدام مفتاحك الخاص من Cesium Ion في المشاريع الحقيقية)
-            
-            viewer = new Cesium.Viewer('cesiumContainer', {
-                terrainProvider: Cesium.createWorldTerrain(),
-                baseLayerPicker: false,
-                geocoder: false,
-                homeButton: false,
-                sceneModePicker: false,
-                navigationHelpButton: false,
-                infoBox: false,
-                selectionIndicator: false,
-                timeline: false,
-                animation: false,
-                skyBox: new Cesium.SkyBox({
-                    sources: {
-                        positiveX: 'https://cesiumjs.org/skybox/px.png',
-                        negativeX: 'https://cesiumjs.org/skybox/nx.png',
-                        positiveY: 'https://cesiumjs.org/skybox/py.png',
-                        negativeY: 'https://cesiumjs.org/skybox/ny.png',
-                        positiveZ: 'https://cesiumjs.org/skybox/pz.png',
-                        negativeZ: 'https://cesiumjs.org/skybox/nz.png'
-                    }
-                })
-            });
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 0, 2.5); // النظر للكرة من الأمام
 
-            // ضبط زاوية الكاميرا للشروق/الغروب
-            viewer.scene.globe.enableLighting = true; // تشغيل ضوء الشمس الحقيقي
-            viewer.clock.currentTime = Cesium.JulianDate.fromDate(new Date());
-            viewer.scene.sun = new Cesium.Sun();
-            
-            // تشغيل أضواء المدن ليلاً
-            const nightLights = viewer.scene.primitives.add(
-                new Cesium.createTileMapServiceImageryProvider({
-                    url: 'https://api.maptiler.com/tiles/satellite/{z}/{x}/{y}.jpg?key=YOUR_API_KEY_HERE',
-                    // ملاحظة: للحصول على أضواء حقيقية للمدن، تحتاج لاستخدام ملفات تيرين خاصة أو طبقات Night Lights.
-                    // هنا نستخدم بديلاً بصرياً يحاكي الطبيعة.
-                })
-            );
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
 
-            // إخفاء شاشة التحميل
-            setTimeout(() => { document.getElementById('loadingScreen').classList.add('hidden'); }, 3000);
+        // صورة الكرة الأرضية
+        const geometry = new THREE.SphereGeometry(1, 64, 64);
+        const textureLoader = new THREE.TextureLoader();
+        // صورة نهارية عالية الدقة
+        const dayMap = textureLoader.load('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg');
+        // صورة ليلية (الأضواء)
+        const nightMap = textureLoader.load('https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/World_map_%28NASA%29_%28night%29.jpg/1280px-World_map_%28NASA%29_%28night%29.jpg');
+        // صورة الغلاف الجوي
+        const specularMap = textureLoader.load('https://unpkg.com/three-globe/example/img/earth-water.png');
+        
+        const material = new THREE.MeshPhongMaterial({
+            map: dayMap,
+            specularMap: specularMap,
+            specular: new THREE.Color('grey'),
+            emissiveMap: nightMap,
+            emissive: new THREE.Color(0xffdd55), // اللون الذهبي للأضواء
+            emissiveIntensity: 1.5
+        });
+
+        const earth = new THREE.Mesh(geometry, material);
+        scene.add(earth);
+
+        // الإضاءة
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+        scene.add(ambientLight);
+        
+        // ضوء الشمس (محاكاة)
+        const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        sunLight.position.set(2, 3, 1);
+        scene.add(sunLight);
+
+        // دوران الكرة
+        function animate() {
+            requestAnimationFrame(animate);
+            earth.rotation.y += 0.0015; // دوران ثابت وسلس
+            renderer.render(scene, camera);
         }
+        animate();
 
-        // ------- 2. البحث عن بيانات المدينة -------
+        // إخفاء شاشة التحميل
+        setTimeout(() => { document.getElementById('loader').classList.add('hidden'); }, 2000);
+
+        // --- 2. نظام البحث والطقس ---
+        const API_KEY = "8cfbdd362db68d9f6f10a8afc288c3aa";
+        const WEATHER_URL = "https://api.openweathermap.org/data/2.5/";
+
         async function searchCity() {
-            const city = document.getElementById('cityInput').value.trim() || "Baghdad";
+            const city = document.getElementById('cityInput').value.trim() || "Dubai";
             try {
-                const wRes = await fetch(`${WEATHER_URL}q=${city}&appid=${API_KEY}&units=metric`);
-                if (!wRes.ok) throw new Error("City not found");
-                const wData = await wRes.json();
-                updateUI(wData);
-                flyToCity(wData.coord.lat, wData.coord.lon);
-            } catch (error) {
-                alert("Error: " + error.message);
+                const res = await fetch(`${WEATHER_URL}weather?q=${city}&appid=${API_KEY}&units=metric`);
+                if (!res.ok) throw new Error("City not found");
+                const data = await res.json();
+                updateWeatherUI(data);
+                updateForecast(city);
+            } catch (e) {
+                alert("City not found! Please try a different name.");
             }
         }
 
-        function flyToCity(lat, lon) {
-            viewer.camera.flyTo({
-                destination: Cesium.Cartesian3.fromDegrees(lon, lat, 5000000),
-                duration: 3
-            });
-        }
-
-        // ------- 3. تحديث الـ UI -------
-        function updateUI(data) {
+        // --- 3. تحديث واجهة الطقس ---
+        function updateWeatherUI(data) {
             const temp = Math.round(data.main.temp);
-            const feels = Math.round(data.main.feels_like);
-            const desc = data.weather[0].description;
-            const icon = data.weather[0].icon;
-            const pop = data.sys.country === "IQ" ? "43 million" : "N/A"; // افتراضي لأن API السكان مدفوع
-
-            document.getElementById('currentTemp').innerText = `${temp}°C`;
-            document.getElementById('weatherDesc').innerText = desc.charAt(0).toUpperCase() + desc.slice(1);
+            document.getElementById('tempDisplay').innerText = `${temp}°C`;
+            document.getElementById('weatherDesc').innerText = data.weather[0].description;
             document.getElementById('humidity').innerText = `${data.main.humidity}%`;
             document.getElementById('windSpeed').innerText = `${Math.round(data.wind.speed * 3.6)} km/h`;
-            document.getElementById('feelsLike').innerText = `${feels}°C`;
+            document.getElementById('feelsLike').innerText = `${Math.round(data.main.feels_like)}°C`;
             document.getElementById('cityName').innerText = `${data.name}, ${data.sys.country}`;
-            document.getElementById('populationSmall').innerText = `Population: ${pop}`;
-            document.getElementById('countryInfo').innerText = data.sys.country;
-
-            // سعر الذهب المحاكى (لأن الـ API الحقيقي للذهب مكلف جداً، سنستخدم قيمة ثابتة مع تغير بسيط)
-            const fakeGoldPrice = (1920 + Math.random() * 10).toFixed(2);
-            document.getElementById('goldPrice').innerText = `$${fakeGoldPrice}`;
-            document.getElementById('population').innerText = pop;
-
-            // أيقونات جوجل (محاكاة)
-            let iconEmoji = "🌤️";
-            if(icon.startsWith("01")) iconEmoji = "☀️";
-            else if(icon.startsWith("02")) iconEmoji = "⛅";
-            else if(icon.startsWith("03") || icon.startsWith("04")) iconEmoji = "☁️";
-            else if(icon.startsWith("09") || icon.startsWith("10")) iconEmoji = "🌧️";
-            else if(icon.startsWith("11")) iconEmoji = "⛈️";
-            else if(icon.startsWith("13")) iconEmoji = "❄️";
-            document.getElementById('weatherIcon').innerText = iconEmoji;
-        }
-
-        // ------- 4. قائمة اللغات -------
-        function changeLanguage(lang) {
-            const labels = {
-                en: { desc: "Weather Details", humid: "Humidity", wind: "Wind", feels: "Feels Like", pop: "Population", gold: "Gold (USD/Oz)" },
-                ar: { desc: "تفاصيل الطقس", humid: "الرطوبة", wind: "الرياح", feels: "درجة الحرارة المحسوسة", pop: "التعداد السكاني", gold: "الذهب (دولار/أونصة)" },
-                fr: { desc: "Détails Météo", humid: "Humidité", wind: "Vent", feels: "Ressenti", pop: "Population", gold: "Or (USD/Oz)" }
-            };
             
-            // مثال تطبيقي لتغيير النصوص الثابتة (الأكثر تعقيداً يتطلب إعادة هيكلة الـ HTML)
-            alert(`Language changed to: ${lang.toUpperCase()}. (Reloading to apply strictly is required for dynamic 3D labels)`);
-            // في هذا الإصدار، قمنا بترجمة النصوص الثابتة الأساسية
+            // أيقونة حسب الحالة
+            const id = data.weather[0].id;
+            let icon = "☀️";
+            if (id >= 200 && id < 300) icon = "⛈️"; // Thunderstorm
+            else if (id >= 300 && id < 500) icon = "🌦️"; // Drizzle
+            else if (id >= 500 && id < 600) icon = "🌧️"; // Rain
+            else if (id >= 600 && id < 700) icon = "❄️"; // Snow
+            else if (id >= 700 && id < 800) icon = "🌫️"; // Fog
+            else if (id === 800) icon = "☀️"; // Clear
+            else if (id > 800) icon = "☁️"; // Clouds
+            document.getElementById('weatherIcon').innerText = icon;
         }
 
-        // تشغيل أولي عند التحميل
-        window.onload = function() {
-            initEarth();
-            setTimeout(() => { searchCity(); }, 5000);
-        };
+        // --- 4. تحديث التوقعات (Forecast) ---
+        async function updateForecast(city) {
+            const container = document.getElementById('forecastContainer');
+            container.innerHTML = '<div style="padding:10px; color:#aaa;">Loading forecast...</div>';
+            try {
+                const res = await fetch(`${WEATHER_URL}forecast?q=${city}&appid=${API_KEY}&units=metric`);
+                const data = await res.json();
+                
+                container.innerHTML = '';
+                // الحصول على توقعات الظهيرة للأيام القادمة
+                const daily = data.list.filter(item => item.dt_txt.includes("12:00:00"));
+                
+                daily.slice(0, 6).forEach(day => {
+                    const date = new Date(day.dt * 1000);
+                    const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+                    const icon = day.weather[0].icon;
+                    let emoji = "☀️";
+                    if(icon.startsWith('01')) emoji = "☀️";
+                    else if(icon.startsWith('02')) emoji = "⛅";
+                    else if(icon.startsWith('03') || icon.startsWith('04')) emoji = "☁️";
+                    else if(icon.startsWith('09') || icon.startsWith('10')) emoji = "🌧️";
+                    else if(icon.startsWith('11')) emoji = "⛈️";
+                    else if(icon.startsWith('13')) emoji = "❄️";
+                    
+                    const item = document.createElement('div');
+                    item.className = 'day-item';
+                    item.innerHTML = `
+                        <span class="day-name">${dayName}</span>
+                        <span class="day-icon">${emoji}</span>
+                        <span class="day-temp">${Math.round(day.main.temp)}°</span>
+                    `;
+                    container.appendChild(item);
+                });
+            } catch (e) {
+                container.innerHTML = '<div style="padding:10px; color:red;">Forecast Error</div>';
+            }
+        }
+
+        // --- 5. الساعة الحقيقية ---
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('liveClock').innerText = now.toLocaleTimeString();
+            document.getElementById('liveDate').innerText = now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // --- 6. تغيير اللغة ---
+        function changeLang(lang) {
+            const msg = lang === 'en' ? 'Language changed to English' :
+                        lang === 'ar' ? 'تم تغيير اللغة إلى العربية' :
+                        'Langue changée en Français';
+            alert(msg);
+            // ملاحظة: لتطبيق الترجمة الكاملة، يجب إضافة قاموس ترجمة (Translation Dictionary) أو إعادة تحميل الصفحة.
+        }
+
+        // --- تشغيل البحث الأولي ---
+        window.onload = searchCity;
+
+        // --- إعادة ضبط الحجم عند دوران الشاشة ---
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
     </script>
 </body>
 </html>
