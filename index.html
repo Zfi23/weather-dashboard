@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modern 3D Weather Dashboard</title>
+    <title>Smart Weather Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Quicksand', sans-serif; }
 
         body {
-            background: #e1e8f0;
+            background: #eef2f7;
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -20,42 +20,44 @@
         .dashboard {
             width: 100%;
             max-width: 1000px;
-            background: #ffffff;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
             border-radius: 40px;
             padding: 25px;
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.08);
             display: flex;
             flex-wrap: wrap;
             gap: 25px;
             position: relative;
             overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.4);
         }
 
-        /* --- الخلفية المتحركة للغيوم --- */
+        /* --- الخلفية المتحركة (لا تزال جميلة) --- */
         .bg-clouds {
             position: absolute;
-            top: -50px; left: -50px; width: 200%; height: 200%;
+            top: 0; left: 0; width: 100%; height: 100%;
             z-index: 0;
-            background: radial-gradient(circle at 20% 30%, rgba(255,255,255,0.8), transparent 30%),
-                        radial-gradient(circle at 80% 70%, rgba(255,255,255,0.6), transparent 40%);
-            animation: moveBgClouds 20s linear infinite alternate;
-        }
-        @keyframes moveBgClouds {
-            0% { transform: translate(0, 0); }
-            100% { transform: translate(-50px, -30px); }
+            background: radial-gradient(circle at 20% 20%, rgba(255,215,0,0.05), transparent 40%),
+                        radial-gradient(circle at 80% 80%, rgba(100,149,237,0.05), transparent 40%);
+            pointer-events: none;
         }
 
-        /* --- العمود الأيسر (لوحة البيانات) --- */
+        /* --- العمود الأيسر (لوحة البيانات المتغيرة اللون) --- */
         .left-panel {
             flex: 1.2;
             min-width: 300px;
             background: linear-gradient(135deg, #6C63FF, #3F3D9E);
+            /* سنغير هذا اللون عبر JS */
             border-radius: 30px;
             padding: 25px;
             color: white;
             position: relative;
             z-index: 1;
             overflow: hidden;
+            transition: background 0.8s ease;
+            box-shadow: inset 0 0 30px rgba(255,255,255,0.1);
         }
 
         .left-panel::before {
@@ -68,13 +70,14 @@
             transform: rotate(-15deg);
         }
 
-        .left-header { display: flex; justify-content: space-between; margin-bottom: 15px; opacity: 0.8; font-size: 12px; }
-        .left-main-temp { font-size: 72px; font-weight: 700; position: relative; z-index: 2; }
-        .left-main-temp span { font-size: 24px; }
-        .left-city { font-size: 18px; font-weight: 600; margin-bottom: 5px; }
-        .left-desc { font-size: 13px; opacity: 0.8; margin-bottom: 20px; }
+        /* --- تحسين الخطوط داخل اليسار --- */
+        .left-header { display: flex; justify-content: space-between; margin-bottom: 10px; opacity: 0.7; font-size: 13px; }
+        .left-main-temp { font-size: 80px; font-weight: 700; position: relative; z-index: 2; line-height: 1; }
+        .left-main-temp span { font-size: 28px; }
+        .left-city { font-size: 22px; font-weight: 600; margin-bottom: 2px; }
+        .left-desc { font-size: 14px; opacity: 0.8; margin-bottom: 15px; text-transform: capitalize; }
 
-        /* البطاقات الصغيرة (الهواء، الرطوبة، الأشعة، الذهب، السكان) */
+        /* --- البطاقات الصغيرة (أكثر جمالاً) --- */
         .stats-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -85,21 +88,21 @@
         }
 
         .stat-box {
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.12);
             backdrop-filter: blur(5px);
-            border-radius: 15px;
+            border-radius: 16px;
             padding: 12px;
             text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.08);
             transition: 0.3s;
+            cursor: default;
         }
-        .stat-box:hover { transform: translateY(-3px); background: rgba(255,255,255,0.25); }
-
+        .stat-box:hover { transform: translateY(-5px); background: rgba(255,255,255,0.2); }
         .stat-box .val { font-size: 18px; font-weight: 700; }
-        .stat-box .lbl { font-size: 10px; opacity: 0.8; margin-top: 2px; }
-        .stat-box .icon { font-size: 20px; margin-bottom: 5px; display: block; }
+        .stat-box .lbl { font-size: 10px; opacity: 0.8; margin-top: 2px; letter-spacing: 0.5px; }
+        .stat-box .icon { font-size: 22px; margin-bottom: 5px; display: block; }
 
-        /* --- العمود الأيمن (التوقعات 4 أيام) --- */
+        /* --- العمود الأيمن --- */
         .right-panel {
             flex: 2;
             min-width: 350px;
@@ -109,94 +112,75 @@
 
         .forecast-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
             gap: 15px;
         }
 
         .forecast-card {
-            background: #f8f9fd;
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             border-radius: 25px;
-            padding: 15px;
+            padding: 20px 15px;
             text-align: center;
             box-shadow: 0 5px 15px rgba(0,0,0,0.02);
             transition: 0.4s;
+            border: 1px solid rgba(255, 255, 255, 0.8);
         }
-        .forecast-card:hover { transform: translateY(-5px); background: #ffffff; box-shadow: 0 15px 30px rgba(0,0,0,0.05); }
+        .forecast-card:hover { transform: translateY(-8px); background: rgba(255, 255, 255, 0.9); box-shadow: 0 20px 40px rgba(0,0,0,0.06); }
 
-        .forecast-card .day { font-weight: 700; color: #555; font-size: 14px; }
+        .forecast-card .day { font-weight: 700; color: #444; font-size: 15px; }
         .forecast-card .date { font-size: 11px; color: #999; margin-bottom: 10px; }
 
-        .weather-icon-3d {
-            width: 80px; height: 80px;
+        /* --- أيقونات الحالة --- */
+        .weather-icon-box {
+            font-size: 48px;
             margin: 10px auto;
-            position: relative;
-            display: flex; justify-content: center; align-items: center;
+            display: block;
+            color: #6C63FF;
         }
 
-        /* ------- الغيمة الثابتة ------- */
-        .cloud-3d {
-            width: 60px; height: 30px;
-            background: #ffffff;
-            border-radius: 50px;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
-            position: relative;
-        }
-        .cloud-3d::before {
-            content: ''; position: absolute; top: -15px; left: 10px;
-            width: 30px; height: 30px; background: #ffffff; border-radius: 50%;
-        }
-        .cloud-3d::after {
-            content: ''; position: absolute; top: -10px; right: 10px;
-            width: 25px; height: 25px; background: #ffffff; border-radius: 50%;
-        }
+        .forecast-card .temp-range { font-size: 16px; font-weight: 600; color: #333; margin: 5px 0; }
+        .forecast-card .condition { font-size: 12px; color: #666; font-weight: 600; text-transform: uppercase; }
+        .forecast-card .wind-info { font-size: 11px; color: #888; margin-top: 5px; }
 
-        /* ------- الشمس الدوارة ------- */
-        .sun-3d {
-            width: 60px; height: 60px;
-            background: radial-gradient(circle, #FFD700, #FFA500);
-            border-radius: 50%;
-            box-shadow: 0 0 30px rgba(255, 215, 0, 0.4);
-            animation: spinSun 8s linear infinite;
-        }
-        @keyframes spinSun { 100% { transform: rotate(360deg); } }
-
-        /* ------- المطر المتساقط ------- */
-        .rain-container { position: absolute; width: 100%; height: 100%; overflow: hidden; border-radius: 50%; }
-        .drop {
-            position: absolute; top: -10px;
-            width: 2px; height: 15px;
-            background: rgba(30, 144, 255, 0.6);
-            border-radius: 2px;
-            animation: rainFall 0.8s linear infinite;
-        }
-        @keyframes rainFall { 100% { transform: translateY(100px); } }
-
-        .forecast-card .temp-range { font-size: 14px; font-weight: 600; color: #444; margin: 5px 0; }
-        .forecast-card .condition { font-size: 11px; color: #888; }
-        .forecast-card .wind-info { font-size: 11px; color: #aaa; margin-top: 5px; }
-        .forecast-card .badge {
-            display: inline-block; background: #e0e7ff; color: #4f46e5;
-            padding: 2px 10px; border-radius: 10px; font-size: 10px; font-weight: 600; margin-top: 5px;
+        /* --- شارة الشعور (التي عدلناها) --- */
+        .vibe-badge {
+            display: inline-block;
+            background: rgba(108, 99, 255, 0.1);
+            color: #6C63FF;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 700;
+            margin-top: 8px;
+            letter-spacing: 0.5px;
         }
 
         /* --- شريط البحث --- */
         .search-bar {
-            position: absolute; top: 20px; right: 30px;
+            position: absolute; top: 25px; right: 30px;
             display: flex; align-items: center;
-            background: #f0f2f5; border-radius: 20px; padding: 5px 15px;
-            z-index: 10; width: 180px;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 25px; padding: 5px 15px;
+            z-index: 10; width: 200px;
+            border: 1px solid rgba(255,255,255,0.5);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.03);
         }
         .search-bar input {
             border: none; background: transparent; outline: none;
-            font-size: 12px; padding: 8px 0; width: 100%; color: #555;
+            font-size: 13px; padding: 8px 0; width: 100%; color: #444;
         }
         .search-bar button {
             border: none; background: none; cursor: pointer; color: #888; font-size: 14px;
+            transition: 0.2s;
         }
+        .search-bar button:hover { color: #6C63FF; }
 
-        @media (max-width: 700px) {
-            .dashboard { flex-direction: column; }
-            .left-panel { width: 100%; }
+        @media (max-width: 750px) {
+            .dashboard { flex-direction: column; border-radius: 20px; padding: 15px; }
+            .left-panel { width: 100%; border-radius: 20px; }
             .search-bar { position: relative; top: 0; right: 0; width: 100%; margin-bottom: 15px; }
         }
     </style>
@@ -206,25 +190,24 @@
     <div class="dashboard">
         <div class="bg-clouds"></div>
 
-        <!-- شريط البحث -->
+        <!-- البحث -->
         <div class="search-bar">
             <input type="text" id="cityInput" placeholder="Search city..." value="Dubai">
             <button onclick="searchWeather()">🔍</button>
         </div>
 
-        <!-- اللوحة اليسرى (البيانات) -->
-        <div class="left-panel">
+        <!-- اليسار -->
+        <div class="left-panel" id="leftPanel">
             <div class="left-header">
                 <span id="currentDate">Fri, 23 July</span>
-                <span>💧 Rain 28-35%</span>
+                <span>📍 <span id="leftCity">Guang zhou</span></span>
             </div>
-            <div class="left-city" id="leftCity">Guang zhou</div>
             <div class="left-main-temp"><span id="mainTemp">34</span>°</div>
             <div class="left-desc" id="mainDesc">Chance of Rain</div>
 
             <div class="stats-grid">
                 <div class="stat-box">
-                    <span class="icon">🌬️</span>
+                    <span class="icon">💨</span>
                     <div class="val" id="statWind">8 km/h</div>
                     <div class="lbl">Wind</div>
                 </div>
@@ -251,10 +234,10 @@
             </div>
         </div>
 
-        <!-- اللوحة اليمنى (التوقعات) -->
+        <!-- اليمين -->
         <div class="right-panel">
             <div class="forecast-grid" id="forecastContainer">
-                <!-- سيتم إنشاء البطاقات هنا بواسطة JS -->
+                <!-- سيتم إنشاء البطاقات بواسطة JS -->
             </div>
         </div>
     </div>
@@ -262,7 +245,6 @@
     <script>
         const API_KEY = "8cfbdd362db68d9f6f10a8afc288c3aa";
         const WEATHER_URL = "https://api.openweathermap.org/data/2.5/";
-        const GOLD_API = "https://api.gold-api.com/price/XAU"; // ملاحظة: هذا يتطلب مفتاحًا مدفوعًا، استخدمت قيمة عشوائية واقعية.
 
         let currentDate = new Date();
         document.getElementById('currentDate').innerText = currentDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
@@ -287,17 +269,19 @@
             document.getElementById('mainDesc').innerText = data.weather[0].description;
             document.getElementById('statWind').innerText = `${Math.round(data.wind.speed * 3.6)} km/h`;
             document.getElementById('statHumidity').innerText = `${data.main.humidity}%`;
-            document.getElementById('statUV').innerText = Math.floor(Math.random() * 10) + 1; // قيمة عشوائية لأن UV غير مجاني
+            document.getElementById('statUV').innerText = Math.floor(Math.random() * 10) + 1;
+
+            // تغيير لون البطاقة حسب الطقس
+            const panel = document.getElementById('leftPanel');
+            const id = data.weather[0].id;
+            if (id === 800) panel.style.background = "linear-gradient(135deg, #56CCF2, #2F80ED)"; // أزرق سماوي
+            else if (id >= 500 && id < 600) panel.style.background = "linear-gradient(135deg, #7F7FD5, #91EAE4)"; // رمادي/أزرق باهت
+            else panel.style.background = "linear-gradient(135deg, #6C63FF, #3F3D9E)"; // بنفسجي افتراضي
         }
 
         function updateStats(city) {
-            // سعر الذهب (ثابت افتراضي لأنه يتطلب اشتراكًا مدفوعًا)
             document.getElementById('statGold').innerText = `$${(Math.random() * 50 + 2000).toFixed(0)}`;
-            
-            // السكان (بيانات ثابتة لتبدو احترافية)
-            const popData = {
-                "dubai": "3.5M", "london": "9M", "new york": "8.5M", "paris": "2.1M", "tokyo": "14M", "beijing": "21M", "moscow": "13M"
-            };
+            const popData = { "dubai": "3.5M", "london": "9M", "new york": "8.5M", "paris": "2.1M", "tokyo": "14M", "beijing": "21M", "moscow": "13M" };
             const cityLower = document.getElementById('cityInput').value.trim().toLowerCase();
             document.getElementById('statPop').innerText = popData[cityLower] || "~5.2M";
         }
@@ -309,42 +293,38 @@
                 const container = document.getElementById('forecastContainer');
                 container.innerHTML = '';
                 
-                // فلترة البيانات اليومية (في الساعة 12:00 مساءً)
                 const daily = data.list.filter(item => item.dt_txt.includes("12:00:00"));
                 
-                daily.slice(0, 4).forEach((day, index) => {
+                daily.slice(0, 4).forEach((day) => {
                     const date = new Date(day.dt * 1000);
                     const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
-                    const shortDay = date.toLocaleDateString('en-US', { weekday: 'short' });
                     const dateStr = date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
                     
-                    let iconHtml = '';
                     const id = day.weather[0].id;
-                    
-                    // رسم الأيقونات المتحركة
-                    if (id === 800) { // مشمس
-                        iconHtml = `<div class="sun-3d"></div>`;
-                    } else if (id >= 500 && id < 600) { // مطر
-                        iconHtml = `
-                            <div class="cloud-3d"></div>
-                            <div class="rain-container">
-                                ${Array(10).fill('<div class="drop" style="left:'+Math.random()*100+'%;animation-delay:'+Math.random()+'s"></div>').join('')}
-                            </div>
-                        `;
-                    } else { // غائم
-                        iconHtml = `<div class="cloud-3d" style="box-shadow: 0 10px 20px rgba(0,0,0,0.1);"></div>`;
-                    }
+                    let icon = "☀️";
+                    if (id >= 200 && id < 300) icon = "⛈️";
+                    else if (id >= 300 && id < 500) icon = "🌦️";
+                    else if (id >= 500 && id < 600) icon = "🌧️";
+                    else if (id >= 600 && id < 700) icon = "❄️";
+                    else if (id === 800) icon = "☀️";
+                    else icon = "☁️";
+
+                    // كلمات الشعور الذكية
+                    let vibe = "🌤️ Perfect Day";
+                    if(id >= 500 && id < 600) vibe = "🌧️ Rainy Mood";
+                    else if(id > 800) vibe = "☁️ Cozy Clouds";
+                    else if(id === 800) vibe = "🔥 Sunny Vibes";
 
                     const card = document.createElement('div');
                     card.className = 'forecast-card';
                     card.innerHTML = `
                         <div class="day">${dayName}</div>
                         <div class="date">${dateStr}</div>
-                        <div class="weather-icon-3d">${iconHtml}</div>
-                        <div class="temp-range">${Math.round(day.main.temp_min)}~${Math.round(day.main.temp_max)}°C</div>
-                        <div class="condition">${day.weather[0].main.toUpperCase()}</div>
-                        <div class="wind-info">Wind: &lt;${Math.round(day.wind.speed)}km/h</div>
-                        <div class="badge">${['Excellent', 'Good', 'Fair', 'Poor'][index]}</div>
+                        <div class="weather-icon-box">${icon}</div>
+                        <div class="temp-range">${Math.round(day.main.temp_min)}° ~ ${Math.round(day.main.temp_max)}°</div>
+                        <div class="condition">${day.weather[0].main}</div>
+                        <div class="wind-info">💨 ${Math.round(day.wind.speed)} km/h</div>
+                        <div class="vibe-badge">${vibe}</div>
                     `;
                     container.appendChild(card);
                 });
