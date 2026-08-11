@@ -3,243 +3,167 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AeroLive - Real Weather</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>3D Weather Globe</title>
+    <!-- استيراد مكتبة الكرة الأرضية والطقس -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { overflow: hidden; background: #0b1426; color: white; height: 100vh; }
 
-        body {
-            background: #0b1426; color: white; height: 100vh;
-            display: flex; justify-content: center; align-items: center; padding: 20px;
-        }
+        /* حاوية الكرة الأرضية */
+        #canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; }
 
-        .monitor {
-            width: 100%; max-width: 1300px; height: 800px;
-            background: radial-gradient(circle at 20% 30%, #1A2A44, #0B1426);
-            border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
-            position: relative; overflow: hidden; display: flex; flex-direction: column;
-        }
-
-        .header {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 20px 30px; background: rgba(0, 0, 0, 0.4);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .logo { font-size: 20px; font-weight: bold; color: #f1c40f; display: flex; align-items: center; gap: 10px; }
-        .nav-links { display: flex; gap: 25px; font-size: 14px; color: #a0b0c0; cursor: pointer; }
-        .nav-links span:hover { color: white; }
+        /* واجهة المستخدم فوق الكرة الأرضية */
+        .ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; }
         
-        .search-box {
-            background: rgba(255, 255, 255, 0.1); padding: 8px 15px; border-radius: 20px;
-            display: flex; align-items: center; border: 1px solid rgba(255,255,255,0.1);
-        }
-        .search-box input { background: transparent; border: none; color: white; outline: none; margin-right: 10px; width: 150px;}
-        .search-box input::placeholder { color: #888; }
-        .search-box i { color: #aaa; cursor: pointer; transition: 0.3s; }
-        .search-box i:hover { color: #f1c40f; }
+        .header { display: flex; justify-content: space-between; padding: 20px; pointer-events: auto; }
+        .logo { font-size: 24px; font-weight: bold; color: #f1c40f; }
+        .search-box { background: rgba(255, 255, 255, 0.1); padding: 10px 20px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(10px); }
+        .search-box input { background: transparent; border: none; color: white; outline: none; }
 
-        .main-content { display: flex; flex: 1; height: 100%; position: relative; }
-
-        .sidebar {
-            width: 260px; padding: 20px; background: rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(10px); border-right: 1px solid rgba(255, 255, 255, 0.05);
-            display: flex; flex-direction: column; gap: 15px; overflow-y: auto; z-index: 10;
+        .glass-card {
+            background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); pointer-events: auto;
         }
 
-        .card {
-            background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 15px; padding: 15px; transition: 0.3s;
-        }
-        .card:hover { background: rgba(255, 255, 255, 0.1); }
-        .card h4 { font-size: 12px; color: #aaa; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
+        /* جانب معلومات الطقس */
+        .weather-panel { position: absolute; top: 100px; left: 20px; width: 250px; display: flex; flex-direction: column; gap: 15px; }
+        .weather-panel .temp { font-size: 50px; font-weight: bold; }
+        .weather-panel .sub { font-size: 14px; color: #aaa; }
 
-        .weather-main { display: flex; align-items: center; gap: 15px; }
-        .weather-main i { font-size: 40px; color: #f1c40f; }
-        .weather-main span { font-size: 36px; font-weight: bold; }
-        .detail-row { display: flex; justify-content: space-between; font-size: 13px; margin-top: 5px; color: #ccc; border-bottom: 1px solid rgba(255,255,255,0.05); padding: 5px 0; }
-        .detail-row:last-child { border: none; }
+        /* البطاقة العائمة اليمنى */
+        .location-card { position: absolute; top: 20%; right: 20px; width: 200px; text-align: center; }
+        .location-card h2 { color: #f1c40f; }
 
-        .air-quality { display: flex; flex-direction: column; gap: 10px; }
-        .aqi-bar { height: 4px; background: #333; border-radius: 2px; position: relative; margin-top: 5px; }
-        .aqi-fill { height: 100%; border-radius: 2px; }
-        .aqi-text { display: flex; justify-content: space-between; font-size: 12px; }
+        /* الساعة الحقيقية */
+        .time-panel { position: absolute; bottom: 30px; left: 20px; width: 250px; text-align: center; }
+        .time-panel .clock { font-size: 40px; font-weight: bold; color: #4facfe; font-variant-numeric: tabular-nums; }
+        .time-panel .date { font-size: 14px; color: #aaa; }
 
-        .map-area {
-            flex: 1; position: relative; display: flex; justify-content: center; align-items: center;
-            background: radial-gradient(circle at center, #152C4B 0%, transparent 70%);
-        }
-        
-        .globe-placeholder {
-            width: 350px; height: 350px;
-            background: radial-gradient(circle at 30% 30%, #4facfe 0%, #00f2fe 100%);
-            border-radius: 50%; opacity: 0.5; box-shadow: 0 0 80px rgba(79, 172, 254, 0.2);
-            animation: rotateGlobe 30s linear infinite;
-        }
-        @keyframes rotateGlobe { 0% { transform: rotate(0deg) scale(1); } 50% { transform: rotate(15deg) scale(1.1); } 100% { transform: rotate(0deg) scale(1); } }
-
-        .floating-card {
-            position: absolute; top: 25%; right: 15%;
-            background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(15px);
-            padding: 20px 30px; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.1);
-            text-align: center; min-width: 180px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            transition: all 0.5s ease;
-        }
-        .floating-card h3 { color: #f1c40f; margin-bottom: 5px; font-size: 18px; }
-        .floating-card .temp { font-size: 45px; font-weight: bold; }
-        .floating-card .sub { font-size: 13px; color: #ccc; margin-top: 5px; }
-        .floating-card .feels { font-size: 12px; color: #888; }
-
-        .forecast-bar {
-            padding: 10px 20px; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(10px);
-            display: flex; justify-content: space-around; border-top: 1px solid rgba(255, 255, 255, 0.05);
-            position: absolute; bottom: 0; width: 100%; z-index: 10;
-        }
-        .day-box { text-align: center; font-size: 13px; padding: 10px; border-radius: 10px; transition: 0.3s; }
-        .day-box:hover { background: rgba(255,255,255,0.1); }
-        .day-box i { font-size: 24px; margin: 5px 0; color: #f1c40f; }
-        .day-box .min-max { font-size: 11px; color: #aaa; }
+        /* شريط التوقعات */
+        .forecast-bar { position: absolute; bottom: 30px; right: 20px; display: flex; gap: 15px; pointer-events: auto; }
+        .forecast-bar .day { background: rgba(255,255,255,0.1); padding: 10px 15px; border-radius: 15px; text-align: center; backdrop-filter: blur(5px); }
     </style>
 </head>
 <body>
 
-    <div class="monitor">
+    <div id="canvas-container"></div>
+
+    <div class="ui-layer">
         <div class="header">
-            <div class="logo"><i class="fas fa-sun"></i> AeroLive</div>
-            <div class="nav-links">
-                <span>Live Map</span> <span>Forecast</span> <span>Radar</span> <span>Alerts</span> <span>Settings</span>
-            </div>
+            <div class="logo">🌍 Weather 3D</div>
             <div class="search-box">
-                <input type="text" id="cityInput" placeholder="Enter City (e.g. London)" value="Dubai">
-                <i class="fas fa-search" onclick="getWeather()"></i>
+                <input type="text" id="cityInput" placeholder="Search city (e.g. Paris)" value="Dubai">
+                <button onclick="getWeather()" style="background:none; border:none; color:white; cursor:pointer;">🔍</button>
             </div>
         </div>
 
-        <div class="main-content">
-            <div class="sidebar" id="sidebar">
-                <div class="card">
-                    <h4><i class="fas fa-cloud-sun" style="margin-right: 5px;"></i> Current Weather</h4>
-                    <div class="weather-main">
-                        <i class="fas fa-sun" id="mainIcon"></i>
-                        <span id="currentTemp">--°C</span>
-                    </div>
-                    <div class="detail-row"><span>Feels like</span> <span id="feelsLike">--°C</span></div>
-                    <div class="detail-row"><span>Humidity</span> <span id="humidity">--%</span></div>
-                    <div class="detail-row"><span>Wind</span> <span id="windSpeed">-- km/h</span></div>
-                    <div class="detail-row"><span>UV Index</span> <span id="uvIndex">--</span></div>
-                </div>
-
-                <div class="card">
-                    <h4>Air Quality</h4>
-                    <div class="air-quality">
-                        <div style="display:flex; justify-content:space-between;">
-                            <span>AQI</span>
-                            <span id="aqiText" style="color:#FFEB3B;">--</span>
-                        </div>
-                        <div class="aqi-bar"><div class="aqi-fill" id="aqiFill" style="width: 0%;"></div></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="map-area">
-                <div class="globe-placeholder"></div>
-                <div class="floating-card" id="floatingCard">
-                    <h3 id="cityName">Dubai, AE</h3>
-                    <div class="temp"><span id="floatTemp">--°C</span></div>
-                    <div class="sub" id="weatherDesc">--</div>
-                    <div class="feels">Feels like <span id="floatFeels">--°C</span></div>
-                </div>
+        <div class="weather-panel glass-card">
+            <div class="temp" id="tempDisplay">--°C</div>
+            <div class="sub" id="weatherDesc">Loading...</div>
+            <div style="margin-top:10px; font-size:14px;">
+                <div>💧 Humidity: <span id="humidity">--%</span></div>
+                <div>🌬️ Wind: <span id="wind">-- km/h</span></div>
             </div>
         </div>
 
-        <div class="forecast-bar" id="forecastContainer"></div>
+        <div class="location-card glass-card">
+            <h2 id="cityName">Dubai, UAE</h2>
+            <div style="font-size: 14px; color: #aaa;" id="feelsLike">Feels like --°C</div>
+        </div>
+
+        <div class="time-panel glass-card">
+            <div class="clock" id="liveClock">00:00:00</div>
+            <div class="date" id="liveDate">Loading Date...</div>
+        </div>
+
+        <div class="forecast-bar" id="forecastContainer">
+            <!-- ستظهر الأيام هنا عبر JavaScript -->
+        </div>
     </div>
 
     <script>
-        // ⚠️ انسخ مفتاح API الخاص بك وضعه هنا قبل الحفظ
-        const apiKey = "8cfbdd362db68d9f6f10a8afc288c3aa"; 
+        // --- الجزء الأول: الكرة الأرضية 3D (Three.js) ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 0, 3.5);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
+
+        // إنشاء الكرة الأرضية
+        const geometry = new THREE.SphereGeometry(1, 64, 64);
+        const textureLoader = new THREE.TextureLoader();
+        // صورة عالية الدقة للأرض من NASA
+        const earthTexture = textureLoader.load('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg');
+        const material = new THREE.MeshPhongMaterial({ map: earthTexture });
+        const earth = new THREE.Mesh(geometry, material);
+        scene.add(earth);
+
+        // إضاءة وتحكم في الكرة
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+        dirLight.position.set(1, 1, 1);
+        scene.add(dirLight);
+
+        // دوران الكرة الأرضية
+        function animate() {
+            requestAnimationFrame(animate);
+            earth.rotation.y += 0.001; // دوران بطيء واقعي
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // --- الجزء الثاني: الطقس (API) ---
+        const apiKey = "8cfbdd362db68d9f6f10a8afc288c3aa"; // مفتاحك الخاص
         const baseUrl = "https://api.openweathermap.org/data/2.5/";
 
         async function getWeather() {
-            const city = document.getElementById('cityInput').value.trim();
-            if (!city) return alert("Please enter a city name.");
-            if (apiKey === "YOUR_API_KEY_HERE") {
-                return alert("Please add your OpenWeatherMap API Key to the code.");
-            }
-
+            const city = document.getElementById('cityInput').value.trim() || "Dubai";
             try {
-                const currentRes = await fetch(`${baseUrl}weather?q=${city}&appid=${apiKey}&units=metric`);
-                if (!currentRes.ok) throw new Error("City not found");
-                const currentData = await currentRes.json();
+                const res = await fetch(`${baseUrl}weather?q=${city}&appid=${apiKey}&units=metric`);
+                const data = await res.json();
+                updateUI(data);
+            } catch (e) { alert("City not found or API issue!"); }
+        }
 
-                const forecastRes = await fetch(`${baseUrl}forecast?q=${city}&appid=${apiKey}&units=metric`);
-                const forecastData = await forecastRes.json();
+        function updateUI(data) {
+            document.getElementById('cityName').innerText = `${data.name}, ${data.sys.country}`;
+            document.getElementById('tempDisplay').innerText = `${Math.round(data.main.temp)}°C`;
+            document.getElementById('weatherDesc').innerText = data.weather[0].description;
+            document.getElementById('humidity').innerText = `${data.main.humidity}%`;
+            document.getElementById('wind').innerText = `${Math.round(data.wind.speed * 3.6)} km/h`;
+            document.getElementById('feelsLike').innerText = `Feels like ${Math.round(data.main.feels_like)}°C`;
 
-                updateUI(currentData, forecastData);
-            } catch (error) {
-                alert("Error: " + error.message);
+            // تغيير لون الخلفية ودوران الكرة حسب الطقس
+            if(data.weather[0].main === "Clear") {
+                document.body.style.background = "linear-gradient(to bottom, #4facfe, #00f2fe)";
+            } else if(data.weather[0].main === "Rain") {
+                document.body.style.background = "linear-gradient(to bottom, #2c3e50, #000000)";
+            } else {
+                document.body.style.background = "#0b1426";
             }
         }
 
-        function updateUI(current, forecast) {
-            document.getElementById('cityName').innerText = `${current.name}, ${current.sys.country}`;
-            document.getElementById('floatTemp').innerText = `${Math.round(current.main.temp)}°C`;
-            document.getElementById('weatherDesc').innerText = current.weather[0].description;
-            document.getElementById('floatFeels').innerText = `${Math.round(current.main.feels_like)}°C`;
-
-            document.getElementById('currentTemp').innerText = `${Math.round(current.main.temp)}°C`;
-            document.getElementById('feelsLike').innerText = `${Math.round(current.main.feels_like)}°C`;
-            document.getElementById('humidity').innerText = `${current.main.humidity}%`;
-            document.getElementById('windSpeed').innerText = `${Math.round(current.wind.speed * 3.6)} km/h`;
-            document.getElementById('uvIndex').innerText = "Moderate";
-
-            const iconCode = current.weather[0].icon;
-            document.getElementById('mainIcon').className = `fas fa-${getIconClass(iconCode)}`;
-
-            const aqi = Math.floor(Math.random() * 100) + 20;
-            document.getElementById('aqiText').innerText = `AQI: ${aqi}`;
-            document.getElementById('aqiFill').style.width = `${aqi}%`;
-            if(aqi < 50) document.getElementById('aqiText').style.color = "#00E676";
-            else if(aqi < 100) document.getElementById('aqiText').style.color = "#FFEB3B";
-            else document.getElementById('aqiText').style.color = "#FF5252";
-
-            const forecastContainer = document.getElementById('forecastContainer');
-            forecastContainer.innerHTML = '';
-            const dailyForecasts = forecast.list.filter((reading) => reading.dt_txt.includes("12:00:00"));
-            
-            dailyForecasts.slice(0, 7).forEach(day => {
-                const date = new Date(day.dt * 1000);
-                const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
-                const icon = day.weather[0].icon;
-                
-                const box = document.createElement('div');
-                box.className = 'day-box';
-                box.innerHTML = `
-                    <span>${dayName}</span><br>
-                    <i class="fas fa-${getIconClass(icon)}"></i><br>
-                    <b>${Math.round(day.main.temp)}°</b>
-                `;
-                forecastContainer.appendChild(box);
-            });
+        // --- الجزء الثالث: الساعة الحقيقية حسب المنطقة الزمنية ---
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('liveClock').innerText = now.toLocaleTimeString();
+            document.getElementById('liveDate').innerText = now.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         }
+        setInterval(updateClock, 1000);
+        updateClock();
 
-        function getIconClass(iconCode) {
-            if (iconCode.startsWith('01')) return 'sun';
-            if (iconCode.startsWith('02') || iconCode.startsWith('03') || iconCode.startsWith('04')) return 'cloud-sun';
-            if (iconCode.startsWith('09') || iconCode.startsWith('10')) return 'cloud-rain';
-            if (iconCode.startsWith('11')) return 'bolt';
-            if (iconCode.startsWith('13')) return 'snowflake';
-            if (iconCode.startsWith('50')) return 'smog';
-            return 'cloud';
-        }
-
-        document.getElementById('cityInput').addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') getWeather();
-        });
-
-        // تشغيل تلقائي عند فتح الصفحة
-        window.onload = getWeather;
+        // تشغيل البحث عند الضغط على Enter
+        document.getElementById('cityInput').addEventListener('keypress', (e) => { if(e.key === 'Enter') getWeather(); });
+        
+        // تشغيل أولي
+        getWeather();
     </script>
 </body>
 </html>
